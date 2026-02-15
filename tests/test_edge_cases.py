@@ -182,7 +182,7 @@ def test_aspect_orb_boundary_outside(aspect_service):
     )
     p2 = PlanetPosition(
         planet=Planet.MARS,
-        longitude=109.0,  # 9° from conjunction (outside 8° orb)
+        longitude=111.0,  # 11° from conjunction (outside 10° orb)
         latitude=0.0,
         distance=1.0,
         speed_long=0.5,

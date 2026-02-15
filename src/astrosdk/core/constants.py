@@ -48,10 +48,68 @@ class Planet(IntEnum):
     VESTA = 20
     
 class SiderealMode(IntEnum):
-    LAHIRI = 1
-    RAMAN = 3
-    KRISHNAMURTI = 5
-    FAGAN_BRADLEY = 0
+    """
+    All ayanamsa systems supported by Swiss Ephemeris.
+    Values correspond to Swiss Ephemeris sidereal mode constants.
+    """
+    # Main Traditional Systems
+    FAGAN_BRADLEY = 0          # Fagan/Bradley (Western sidereal)
+    LAHIRI = 1                 # Lahiri (Indian government standard)
+    DELUCE = 2                 # De Luce
+    RAMAN = 3                  # B.V. Raman
+    USHASHASHI = 4             # Usha/Shashi
+    KRISHNAMURTI = 5           # Krishnamurti (KP)
+    DJWHAL_KHUL = 6           # Djwhal Khul
+    YUKTESHWAR = 7            # Sri Yukteshwar
+    JN_BHASIN = 8             # J.N. Bhasin
+    BABYLONIAN_KUGLER1 = 9    # Babylonian (Kugler 1)
+    BABYLONIAN_KUGLER2 = 10   # Babylonian (Kugler 2)
+    BABYLONIAN_KUGLER3 = 11   # Babylonian (Kugler 3)
+    BABYLONIAN_HUBER = 12     # Babylonian (Huber)
+    BABYLONIAN_ETPSC = 13     # Babylonian (ETPSC)
+    ALDEBARAN_15TAU = 14      # Aldebaran at 15 Taurus
+    HIPPARCHOS = 15           # Hipparchos
+    SASSANIAN = 16            # Sassanian
+    GALCENT_0SAG = 17         # Galactic Center at 0 Sagittarius
+    J2000 = 18                # J2000
+    J1900 = 19                # J1900
+    B1950 = 20                # B1950
+    
+    # Vedic/Hindu Systems
+    SURYASIDDHANTA = 21       # Suryasiddhanta
+    SURYASIDDHANTA_MSUN = 22  # Suryasiddhanta (mean Sun)
+    ARYABHATA = 23            # Aryabhata
+    ARYABHATA_MSUN = 24       # Aryabhata (mean Sun)
+    SS_REVATI = 25            # Suryasiddhanta (Revati)
+    SS_CITRA = 26             # Suryasiddhanta (Citra)
+    TRUE_CITRA = 27           # True Citra
+    TRUE_REVATI = 28          # True Revati
+    TRUE_PUSHYA = 29          # True Pushya (Panchang Puspakara)
+    
+    # Galactic Systems
+    GALCENT_RGILBRAND = 30    # Galactic Center (Gil Brand)
+    GALEQU_IAU1958 = 31       # Galactic Equator IAU 1958
+    GALEQU_TRUE = 32          # Galactic Equator (true)
+    GALEQU_MULA = 33          # Galactic Equator mid-Mula
+    GALALIGN_MARDYKS = 34     # Galactic alignment (Mardyks)
+    TRUE_MULA = 35            # True Mula (Chandra Hari)
+    GALCENT_MULA_WILHELM = 36 # Galactic Center (Mula, Wilhelm)
+    ARYABHATA_522 = 37        # Aryabhata 522
+    BABYLONIAN_BRITTON = 38   # Babylonian (Britton)
+    
+    # Modern Research Systems
+    TRUE_SHEORAN = 39         # True Sheoran
+    GALCENT_COCHRANE = 40     # Galactic Center (Cochrane)
+    GALEQU_FIORENZA = 41      # Galactic Equator (Fiorenza)
+    VALENS_MOON = 42          # Valens (Moon)
+    LAHIRI_1940 = 43          # Lahiri 1940
+    LAHIRI_VP285 = 44         # Lahiri VP285 (Vernal Point 285)
+    KRISHNAMURTI_VP291 = 45   # Krishnamurti VP291
+    LAHIRI_ICRC = 46          # Lahiri ICRC
+    
+    # Custom/User-defined
+    USER = 255                # User-defined ayanamsa
+
 
 # --- Enterprise Hardening Policies ---
 

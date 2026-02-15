@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-16
+
+### Added
+- **47 ayanamsa systems** (expanded from 4 to 47)
+  - Traditional: Fagan/Bradley, Lahiri, Raman, Krishnamurti, Sri Yukteshwar, etc.
+  - Vedic/Hindu: Suryasiddhanta, Aryabhata, True Citra, True Revati, True Pushya
+  - Babylonian: Kugler 1/2/3, Huber, ETPSC, Britton
+  - Galactic: Galactic Center variants, Galactic Equator systems
+  - Reference: J2000, J1900, B1950, Aldebaran at 15 Taurus
+- **20 aspect types** (expanded from 5 to 20)
+  - Major aspects (5): Conjunction, Sextile, Square, Trine, Opposition
+  - Minor aspects (4): Semi-sextile, Semi-square, Sesqui-quadrate, Quincunx
+  - Kepler aspects (2): Quintile, Biquintile
+  - Septile family (3): Septile, Biseptile, Triseptile
+  - Novile family (3): Novile, Binovile, Quadnovile
+  - Undecile family (3): Undecile, Biundecile, Triundecile
+- **Configurable aspect filtering** by type (major, minor, Kepler, septile, novile, undecile, all)
+- **Custom orb configuration** per aspect type
+- Comprehensive test suite for all new aspects and ayanamsas (17 new tests)
+
+### Changed
+- Enhanced `AspectService.calculate_aspects()` with `aspect_types` and `custom_orbs` parameters
+- Updated default orbs: CONJUNCTION (8.0° → 10.0°), OPPOSITION (8.0° → 10.0°)
+- Expanded `SiderealMode` enum with 43 additional ayanamsa systems
+
+### Fixed
+- Aspect orb boundary test updated for new CONJUNCTION orb (10.0°)
+
+## [1.0.0] - 2026-02-15
+
 ### Added
 - Comprehensive documentation (README, SECURITY policy)
 - Type checking configuration (mypy)

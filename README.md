@@ -89,11 +89,26 @@ for planet_pos in chart.planets:
 from astrosdk.services.aspect_service import AspectService
 
 aspect_service = AspectService()
+
+# Major aspects only (default)
 aspects = aspect_service.calculate_aspects(chart.planets)
+
+# All aspect types (major, minor, Kepler, septile, novile, undecile)
+all_aspects = aspect_service.calculate_aspects(chart.planets, aspect_types=['all'])
+
+# Specific aspect types
+combined = aspect_service.calculate_aspects(chart.planets, aspect_types=['major', 'minor'])
+
+# Custom orbs
+custom_aspects = aspect_service.calculate_aspects(
+    chart.planets,
+    aspect_types=['major'],
+    custom_orbs={"CONJUNCTION": 15.0, "TRINE": 12.0}
+)
 
 for aspect in aspects:
     print(f"{aspect.p1.name} {aspect.type} {aspect.p2.name} "
-          f"(orb: {aspect.orb:.2f}°)")
+          f"(orb: {aspect.orb:.2f}°, {'applying' if aspect.applying else 'separating'})")
 ```
 
 ### Find Eclipses
@@ -149,13 +164,36 @@ SE_EPHE_PATH=/path/to/ephemeris/data
 
 Default: **Lahiri** (Sidereal)
 
-Change sidereal mode:
+AstroSDK supports **47 ayanamsa systems** from Swiss Ephemeris:
+
+**Traditional Systems:**
+- `FAGAN_BRADLEY` - Western sidereal
+- `LAHIRI` - Indian government standard
+- `RAMAN` - B.V. Raman
+- `KRISHNAMURTI` - KP system
+- `YUKTESHWAR` - Sri Yukteshwar
+- And 42 more including Vedic, Babylonian, Galactic, and reference systems
 
 ```python
 from astrosdk.core.constants import SiderealMode
 
+# Lahiri (default)
+eph.set_sidereal_mode(SiderealMode.LAHIRI)
+
+# Krishnamurti (KP)
 eph.set_sidereal_mode(SiderealMode.KRISHNAMURTI)
+
+# Fagan/Bradley (Western sidereal)
+eph.set_sidereal_mode(SiderealMode.FAGAN_BRADLEY)
+
+# Galactic Center at 0 Sagittarius
+eph.set_sidereal_mode(SiderealMode.GALCENT_0SAG)
+
+# J2000 reference
+eph.set_sidereal_mode(SiderealMode.J2000)
 ```
+
+See `SiderealMode` enum for all 47 systems.
 
 ### House Systems
 
@@ -212,6 +250,34 @@ All Swiss Ephemeris calls are protected by a global `RLock`. AstroSDK is safe fo
 - Longitude, latitude, distance
 - Speed (daily motion)
 - Retrograde detection
+- Zodiac sign and degree
+
+### Aspects
+
+**20 Aspect Types** organized by harmonic families:
+
+**Major Aspects (Ptolemaic):**
+- Conjunction (0°), Sextile (60°), Square (90°), Trine (120°), Opposition (180°)
+
+**Minor Aspects:**
+- Semi-sextile (30°), Semi-square (45°), Sesqui-quadrate (135°), Quincunx (150°)
+
+**Kepler Aspects (Quintile family):**
+- Quintile (72°), Biquintile (144°)
+
+**Septile Family (7th harmonic):**
+- Septile (51.43°), Biseptile (102.86°), Triseptile (154.29°)
+
+**Novile Family (9th harmonic):**
+- Novile (40°), Binovile (80°), Quadnovile (160°)
+
+**Undecile Family (11th harmonic):**
+- Undecile (32.73°), Biundecile (65.45°), Triundecile (98.18°)
+
+**Features:**
+- Configurable orbs per aspect
+- Aspect type filtering (major, minor, Kepler, etc.)
+- Applying/separating detection
 - Geocentric and heliocentric
 - Sidereal and tropical
 
