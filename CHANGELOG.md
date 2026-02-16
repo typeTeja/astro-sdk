@@ -7,6 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-02-16
+
+### Added - Phase 8: KP Houses & Domain Purity
+- **KP (Krishnamurti Paddhati) House System**:
+  - 27 Nakshatra (lunar mansion) calculations with planetary lords
+  - Vimshottari sub-lord calculations using proportional dasha periods
+  - 3-tier rulership: Sign Lord, Star Lord (Nakshatra), Sub-Lord
+  - `calculate_kp_houses()` conversion from Placidus cusps
+  - `KPCusp` and `KPHouseSystem` Pydantic models
+- **Time Engine Hardening**: Fully deterministic time handling
+  - No `datetime.now()` usage anywhere in codebase
+  - Timezone enforcement via `Time` class
+  - `AstroTime` public wrapper for user-facing API
+  - Deterministic Julian Day calculations
+
+### Added - Phase 9: Advanced Features
+- **Custom Event Rule Engine** (`event_rules.py`):
+  - JSON-driven pattern matching with 6 condition types:
+    - `AspectCondition`: Planetary aspect detection
+    - `DignityCondition`: Essential dignity matching
+    - `CombustionCondition`: Combustion/cazimi/under beams
+    - `SpeedCondition`: Speed comparisons (<, >, ==, <=, >=)
+    - `RetrogradeCondition`: Retrograde motion detection
+    - `LongitudeCondition`: Longitude range matching (with wraparound)
+  - `EventRule` with AND/OR logic operators
+  - `scan_time_range()` for event detection over date ranges
+  - `RuleMatch` model with match percentages
+- **Synodic Cycles** (`synodic.py`):
+  - Phase angle calculation between planetary pairs
+  - 8-phase cycle classification (conjunction, crescents, quarters, gibbous, opposition)
+  - `SynodicCycle` and `SynodicPhase` models
+- **Astro-Intensity Signals** (`intensity.py`):
+  - Multi-factor 0-1 normalized activity scoring
+  - Contributing factors: aspect density, retrograde count, station points, tight aspects
+  - Activity level classification (quiet/moderate/active/extremely_active)
+  - `IntensitySignal` model with driver analysis
+- **Declination Parallels** (`declination.py`):
+  - Parallel (same declination) aspect detection
+  - Contra-parallel (opposite declination) detection
+  - Out-of-ecliptic aspect support
+  - `DeclinationAspect` model
+- **Ephemeris Export** (`ephemeris_export.py`):
+  - CSV export with complete planetary data
+  - JSON export with structured time series
+  - Configurable intervals for research/backtesting
+
+### Added - Phase 10: Research Tools
+- **Midpoints** (`midpoints.py`):
+  - Direct midpoint calculations (near/far midpoints)
+  - `MidpointTree` for sorted zodiacal ordering
+  - Cluster detection for identifying sensitive degree areas
+  - `find_midpoint_aspects()` for activation analysis
+- **Harmonic Charts** (`harmonics.py`):
+  - Harmonic longitude calculation (H2, H3, H5, H7, H9, H12, etc.)
+  - Complete harmonic chart generation for any harmonic number
+  - Harmonic aspect detection (focuses on conjunctions)
+  - `HarmonicChart` and `HarmonicPosition` models
+- **Primary Directions** (`primary_directions.py`):
+  - Direct and converse arc calculations (1° = 1 year symbolic progression)
+  - `DirectedPosition` model for all planets at any age
+  - Firdaria time lord system (Medieval planetary periods)
+  - Day/night birth differentiation
+- **Astro-Cartography** (`astrocartography.py`):
+  - Planetary line calculations (AS, MC, DS, IC)
+  - `AstroMap` model with comprehensive line filtering
+  - `Paran` model for simultaneous planetary angles
+  - Location-based planetary activation analysis
+
+### Changed - Architecture
+- **Complete Pydantic v2 Migration**: All domain models now use Pydantic BaseModel
+  - Immutable models with `frozen=True` configuration
+  - Field validation with ge/le/lt constraints
+  - Computed properties via `@computed_field`
+  - Type safety throughout the codebase
+- **Public Facade API**: Clean `__init__.py` exposing only essential functions
+  - `calculate_natal_chart()`, `calculate_transit_chart()`, `calculate_synastry()`
+  - `calculate_aspects()`, `find_planetary_aspects()`
+  - Event-finding functions for eclipses, crossings, stations
+  - `AstroTime` wrapper for time handling
+- **Domain Purity**: All domain models are pure data with no external dependencies
+  - No Swiss Ephemeris calls in domain layer
+  - Services handle all ephemeris interactions
+  - Clean separation of concerns
+
+### Tests
+- **177 total tests** (45 new tests in v1.3.0):
+  - 22 KP House tests
+  - 17 Event Rule Engine tests
+  - 10 Advanced Features tests (synodic, intensity, declination, export)
+  - 18 Research Tools tests (midpoints, harmonics, directions, astrocartography)
+- All tests passing with 100% deter deterministic output
+
+### Performance
+- Maintained deterministic calculation guarantees
+- Thread-safe ephemeris handling
+- Efficient Pydantic model validation
+
 ## [1.2.0] - 2026-02-16
 
 ### Added
@@ -52,7 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Major aspects (5): Conjunction, Sextile, Square, Trine, Opposition
   - Minor aspects (4): Semi-sextile, Semi-square, Sesqui-quadrate, Quincunx
   - Kepler aspects (2): Quintile, Biquintile
-  - Septile family (3): Septile, Biseptile, Triseptile
+  - Sept ile family (3): Septile, Biseptile, Triseptile
   - Novile family (3): Novile, Binovile, Quadnovile
   - Undecile family (3): Undecile, Biundecile, Triundecile
 - **Configurable aspect filtering** by type (major, minor, Kepler, septile, novile, undecile, all)
@@ -112,5 +209,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - python-dotenv 1.0.1
 - tzdata 2025.1
 
-[Unreleased]: https://github.com/yourusername/astrosdk/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yourusername/astrosdk/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/yourusername/astrosdk/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/yourusername/astrosdk/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/yourusername/astrosdk/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/yourusername/astrosdk/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/yourusername/astrosdk/releases/tag/v0.1.0
