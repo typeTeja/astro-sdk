@@ -35,6 +35,8 @@ from .domain.planet import PlanetPosition, PlanetaryPhenomena, FixedStarPosition
 from .domain.house import HouseCusp, HouseAxes, ChartHouses
 from .domain.aspect import Aspect
 from .domain.chart import Chart
+from .domain.combustion import CombustionState, CombustionResult
+from .domain.dignity import DignityType, DignityResult
 
 # Services (internal use)
 from .services.natal_service import NatalService as _NatalService
@@ -308,6 +310,12 @@ __all__ = [
     "ChartHouses",
     "Aspect",
     "Chart",
+    
+    # Combustion & Dignities
+    "CombustionState",
+    "CombustionResult",
+    "DignityType",
+    "DignityResult",
     
     # Public Functions
     "calculate_natal_chart",

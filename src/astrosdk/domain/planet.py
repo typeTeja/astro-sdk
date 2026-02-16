@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field
 from typing import Optional
 from ..core.constants import Planet, ZodiacSign
+from .combustion import CombustionResult, calculate_combustion
+from .dignity import DignityResult, calculate_dignity
 
 class PlanetPosition(BaseModel):
     """
@@ -56,6 +58,53 @@ class PlanetPosition(BaseModel):
     def zenith_distance(self) -> Optional[float]:
         """Angle from zenith (90 - altitude)."""
         return 90.0 - self.altitude if self.altitude is not None else None
+    
+    def calculate_combustion(self, sun_longitude: float) -> CombustionResult:
+        """
+        Calculate combustion state relative to the Sun.
+        
+        Args:
+            sun_longitude: Sun's ecliptic longitude (0-360°)
+        
+        Returns:
+            CombustionResult with state, orb, and cazimi flag
+        
+        Examples:
+            >>> sun_pos = PlanetPosition(planet=Planet.SUN, longitude=120, ...)
+            >>> mercury_pos = PlanetPosition(planet=Planet.MERCURY, longitude=125, ...)
+            >>> result = mercury_pos.calculate_combustion(sun_pos.longitude)
+            >>> result.state
+            CombustionState.COMBUST
+        """
+        return calculate_combustion(
+            planet_longitude=self.longitude,
+            sun_longitude=sun_longitude,
+            planet=self.planet
+        )
+    
+    def get_dignity(self, include_mulatrikona: bool = False) -> DignityResult:
+        """
+        Calculate essential dignity for this planet in its current sign.
+        
+        Args:
+            include_mulatrikona: Include Vedic mulatrikona classification
+        
+        Returns:
+            DignityResult with dignity type and strength score
+        
+        Examples:
+            >>> # Sun in Leo (own sign)
+            >>> sun = PlanetPosition(planet=Planet.SUN, longitude=130, ...)
+            >>> dignity = sun.get_dignity()
+            >>> dignity.type
+            DignityType.OWN_SIGN
+        """
+        return calculate_dignity(
+            planet=self.planet,
+            sign=self.sign,
+            degree_in_sign=self.sign_degree,
+            include_mulatrikona=include_mulatrikona
+        )
 
 class PlanetaryPhenomena(BaseModel):
     """Observable phenomena of a planetary body."""
