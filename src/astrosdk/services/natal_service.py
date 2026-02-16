@@ -112,21 +112,25 @@ class NatalService:
         cusps = []
         raw_cusps = data["cusps"]
         
+        # Normalize longitude helper (Swiss Ephemeris can return negatives or >360 in edge cases)
+        def normalize_longitude(lon: float) -> float:
+            return lon % 360.0
+        
         if len(raw_cusps) == 13:
             # Index 1-12 are the cusps, 0 is unused
             for i in range(1, 13):
-                cusps.append(HouseCusp(number=i, longitude=raw_cusps[i]))
+                cusps.append(HouseCusp(number=i, longitude=normalize_longitude(raw_cusps[i])))
         else:
             # Assume 12 elements are cusps 1-12 directly
             for i in range(len(raw_cusps)):
-                cusps.append(HouseCusp(number=i+1, longitude=raw_cusps[i]))
+                cusps.append(HouseCusp(number=i+1, longitude=normalize_longitude(raw_cusps[i])))
             
         axes = HouseAxes(
-            ascendant=data["ascendant"],
-            midheaven=data["mc"],
-            descendant=(data["ascendant"] + 180) % 360,
-            imum_coeli=(data["mc"] + 180) % 360,
-            vertex=data["vertex"]
+            ascendant=normalize_longitude(data["ascendant"]),
+            midheaven=normalize_longitude(data["mc"]),
+            descendant=normalize_longitude((data["ascendant"] + 180) % 360),
+            imum_coeli=normalize_longitude((data["mc"] + 180) % 360),
+            vertex=normalize_longitude(data["vertex"])
         )
         
         return ChartHouses(system=system, cusps=cusps, axes=axes)

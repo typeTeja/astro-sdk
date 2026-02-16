@@ -1,26 +1,34 @@
-from dataclasses import dataclass
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from typing import List
 from ..core.constants import HouseSystem, ZodiacSign
 
-@dataclass(frozen=True)
-class HouseCusp:
-    number: int
-    longitude: float
+class HouseCusp(BaseModel):
+    """Individual house cusp position."""
+    model_config = ConfigDict(frozen=True)
+    
+    number: int = Field(ge=1, le=12, description="House number (1-12)")
+    longitude: float = Field(ge=0.0, lt=360.0, description="Ecliptic longitude of cusp")
 
+    @computed_field
     @property
     def sign(self) -> ZodiacSign:
+        """Zodiac sign of this cusp."""
         return ZodiacSign(int(self.longitude / 30))
 
-@dataclass(frozen=True)
-class HouseAxes:
-    ascendant: float
-    midheaven: float
-    descendant: float
-    imum_coeli: float
-    vertex: float
+class HouseAxes(BaseModel):
+    """Major house axis points."""
+    model_config = ConfigDict(frozen=True)
+    
+    ascendant: float = Field(ge=0.0, lt=360.0, description="Ascendant (1st house cusp)")
+    midheaven: float = Field(ge=0.0, lt=360.0, description="Midheaven (MC, 10th house cusp)")
+    descendant: float = Field(ge=0.0, lt=360.0, description="Descendant (7th house cusp)")
+    imum_coeli: float = Field(ge=0.0, lt=360.0, description="Imum Coeli (IC, 4th house cusp)")
+    vertex: float = Field(ge=0.0, lt=360.0, description="Vertex (ecliptic-prime vertical intersection)")
 
-@dataclass(frozen=True)
-class ChartHouses:
+class ChartHouses(BaseModel):
+    """Complete house system calculation."""
+    model_config = ConfigDict(frozen=True)
+    
     system: HouseSystem
-    cusps: List[HouseCusp]
+    cusps: List[HouseCusp] = Field(min_length=12, max_length=12, description="12 house cusps")
     axes: HouseAxes
