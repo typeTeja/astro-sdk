@@ -37,6 +37,7 @@ from .domain.aspect import Aspect
 from .domain.chart import Chart
 from .domain.combustion import CombustionState, CombustionResult
 from .domain.dignity import DignityType, DignityResult
+from .domain.acceleration import AccelerationData, calculate_acceleration_from_ephemeris as _calc_accel
 
 # Services (internal use)
 from .services.natal_service import NatalService as _NatalService
@@ -287,6 +288,42 @@ def calculate_sunrise_sunset(
     }
 
 
+def calculate_planet_acceleration(
+    time: AstroTime,
+    planet: Planet,
+    sidereal_mode: Optional[SiderealMode] = None,
+    time_delta_days: float = 1.0
+) -> AccelerationData:
+    """
+    Calculate planetary acceleration (2nd derivative of motion).
+    
+    Acceleration indicates whether a planet is speeding up or slowing down.
+    Useful for detecting retrograde stations and analyzing orbital dynamics.
+    
+    Args:
+        time: Time for calculation
+        planet: Planet to analyze
+        sidereal_mode: Optional sidereal mode (default: None/tropical)
+        time_delta_days: Time interval for finite difference (default: 1.0)
+    
+    Returns:
+        AccelerationData with longitude, latitude, and distance acceleration
+    
+    Examples:
+        >>> time = AstroTime.from_components(2024, 1, 15, 12, 0, tz="UTC")
+        >>> accel = calculate_planet_acceleration(time, Planet.MERCURY)
+        >>> if accel.is_near_station:
+        ...     print("Mercury near retrograde station!")
+    """
+    return _calc_accel(
+        ephemeris=_eph,
+        time=time._time,
+        planet=planet,
+        time_delta_days=time_delta_days,
+        sidereal_mode=sidereal_mode
+    )
+
+
 # ============================================================================
 # Public Exports
 # ============================================================================
@@ -317,6 +354,9 @@ __all__ = [
     "DignityType",
     "DignityResult",
     
+    # Acceleration
+    "AccelerationData",
+    
     # Public Functions
     "calculate_natal_chart",
     "calculate_aspects",
@@ -324,6 +364,7 @@ __all__ = [
     "find_next_lunar_eclipse",
     "find_solar_return",
     "calculate_sunrise_sunset",
+    "calculate_planet_acceleration",
 ]
 
 __version__ = "1.3.0-dev"
