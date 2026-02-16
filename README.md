@@ -249,8 +249,9 @@ All Swiss Ephemeris calls are protected by a global `RLock`. AstroSDK is safe fo
 ### Planetary Positions
 - Longitude, latitude, distance
 - Speed (daily motion)
-- Retrograde detection
-- Zodiac sign and degree
+- Retrograde detection and Station dates
+- Zodiac sign and degree (Antiscia/Contra-antiscia)
+- Local Azimuth/Altitude/Zenith Distance
 
 ### Aspects
 
@@ -280,6 +281,52 @@ All Swiss Ephemeris calls are protected by a global `RLock`. AstroSDK is safe fo
 - Applying/separating detection
 - Geocentric and heliocentric
 - Sidereal and tropical
+- Multiple ayanamsa systems (47 supported)
+
+### Locational Astronomy (Horizon)
+
+**Horizon Events:**
+- Sunrise, Sunset, Moonrise, Moonset
+- Transits (Culminations) and Anticulminations (IC)
+- All twilight types: Civil, Nautical, Astronomical
+- Accounts for atmospheric refraction and observer altitude
+
+**Horizontal Coordinates:**
+- Real-time Azimuth, Altitude, and Zenith Distance
+- Automated conversion from equatorial/ecliptic to local horizontal
+
+### Specialized Celestial Events
+
+**Heliacal Phenomena:**
+- Heliacal Risings (First Visibility) and Settings (Last Visibility)
+- Acronychal Risings and Cosmical Settings
+- Support for planets and fixed stars
+
+**Planetary Stations:**
+- Precise detection of Direct and Retrograde station dates
+- Orbital speed zero-crossing analysis
+
+**Simultaneous Events (Parans):**
+- Simultaneous horizon/meridian crossings for any location
+- Parans between planets and fixed stars
+
+### Planetary Dynamics
+
+**Nodes & Apsides:**
+- North/South Lunar Nodes (True and Mean)
+- Planetary Ascending/Descending Nodes
+- Perihelion/Aphelion (Apsides) for all bodies
+- Perigee/Apogee for the Moon
+
+**Crossings & Cycles:**
+- Solar and Lunar Returns
+- Planetary Sign Ingresses (Tropical and Sidereal)
+- Exact time calculation for returns and ingresses
+
+### Fixed Stars
+- Position calculation
+- Magnitude data
+- Conjunction detection
 
 ### Houses
 - 12 house cusps
@@ -295,11 +342,6 @@ All Swiss Ephemeris calls are protected by a global `RLock`. AstroSDK is safe fo
 - Solar and lunar eclipses
 - Planetary ingresses (sign changes)
 - Rise/set/transit times
-
-### Fixed Stars
-- Position calculation
-- Magnitude data
-- Conjunction detection
 
 ### Phenomena
 - Phase angle and illumination

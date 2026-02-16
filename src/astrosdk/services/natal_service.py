@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from ..core.ephemeris import Ephemeris
 from ..core.time import Time
 from ..core.constants import Planet, HouseSystem, SiderealMode
@@ -12,23 +12,46 @@ class NatalService:
     def __init__(self, ephemeris: Ephemeris):
         self.eph = ephemeris
 
-    def calculate_positions(self, time: Time, sidereal_mode: SiderealMode = SiderealMode.LAHIRI) -> List[PlanetPosition]:
+    def calculate_positions(
+        self, 
+        time: Time, 
+        sidereal_mode: Optional[SiderealMode] = SiderealMode.LAHIRI, 
+        heliocentric: bool = False,
+        lat: float = None,
+        lon: float = None,
+        alt: float = 0.0
+    ) -> List[PlanetPosition]:
         """
         Calculate all planetary positions for a given time.
         """
-        # Ensure mode is set (thread-safe in Ephemeris)
-        self.eph.set_sidereal_mode(sidereal_mode)
+        # Ensure mode is set if provided
+        if sidereal_mode is not None:
+            self.eph.set_sidereal_mode(sidereal_mode)
         
+        is_sidereal = sidereal_mode is not None
         jd = time.julian_day
         results = []
         
-        # Calculate main planets
         for planet in Planet:
-            if planet in [Planet.MEAN_NODE_OPP]: # Skip Ketu loop, calc manually
+            if planet in [Planet.MEAN_NODE_OPP]:
                 continue
                 
-            data = self.eph.calculate_planet(jd, planet, sidereal=True)
+            data = self.eph.calculate_planet(jd, planet, sidereal=is_sidereal, heliocentric=heliocentric)
             
+            # Calculate horizontal if geopos provided
+            azimuth = None
+            altitude = None
+            if lat is not None and lon is not None:
+                hor = self.eph.calculate_horizontal(
+                    jd, 
+                    data["longitude"], 
+                    data["latitude"], 
+                    data["distance"], 
+                    lat, lon, alt
+                )
+                azimuth = hor["azimuth"]
+                altitude = hor["true_altitude"]
+
             p = PlanetPosition(
                 planet=planet,
                 longitude=data["longitude"],
@@ -36,21 +59,32 @@ class NatalService:
                 distance=data["distance"],
                 speed_long=data["speed_long"],
                 speed_lat=data["speed_lat"],
-                speed_dist=data["speed_dist"]
+                speed_dist=data["speed_dist"],
+                azimuth=azimuth,
+                altitude=altitude
             )
             results.append(p)
             
-            # Handle Ketu (Opposite Node)
             if planet == Planet.MEAN_NODE:
                 ketu_lon = (data["longitude"] + 180.0) % 360.0
+                
+                k_az = None
+                k_alt = None
+                if lat is not None and lon is not None:
+                     k_hor = self.eph.calculate_horizontal(jd, ketu_lon, -data["latitude"], data["distance"], lat, lon, alt)
+                     k_az = k_hor["azimuth"]
+                     k_alt = k_hor["true_altitude"]
+
                 ketu = PlanetPosition(
                     planet=Planet.MEAN_NODE_OPP,
                     longitude=ketu_lon,
-                    latitude=-data["latitude"], # Approx inverted
+                    latitude=-data["latitude"],
                     distance=data["distance"],
                     speed_long=data["speed_long"],
                     speed_lat=data["speed_lat"],
-                    speed_dist=data["speed_dist"]
+                    speed_dist=data["speed_dist"],
+                    azimuth=k_az,
+                    altitude=k_alt
                 )
                 results.append(ketu)
 

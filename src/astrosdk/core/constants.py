@@ -39,6 +39,8 @@ class Planet(IntEnum):
     MEAN_NODE = 10  # Rahu (Mean)
     TRUE_NODE = 11  # Rahu (True)
     MEAN_NODE_OPP = -1 # Ketu (Mean)
+    LILITH_MEAN = 12  # Black Moon Lilith (Mean)
+    LILITH_TRUE = 13  # True Lilith (Osculating)
     
     # Asteroids (Main Belt)
     CHIRON = 15
@@ -126,7 +128,7 @@ DEFAULT_SIDEREAL = SiderealMode.LAHIRI
 ALLOWED_PLANETS = {
     Planet.SUN, Planet.MOON, Planet.MERCURY, Planet.VENUS, Planet.MARS,
     Planet.JUPITER, Planet.SATURN, Planet.URANUS, Planet.NEPTUNE, Planet.PLUTO,
-    Planet.TRUE_NODE, Planet.MEAN_NODE,
+    Planet.TRUE_NODE, Planet.MEAN_NODE, Planet.LILITH_MEAN, Planet.LILITH_TRUE,
     Planet.CHIRON, Planet.CERES, Planet.PALLAS, Planet.JUNO, Planet.VESTA
 }
 

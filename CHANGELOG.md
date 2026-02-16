@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-02-16
+
+### Added
+- **Heliocentric Support**: Ability to calculate planetary positions from the Sun's center.
+- **Planetary Crossings**:
+  - Solar and Lunar Return detection with exact time calculation.
+  - Planetary Sign Ingress detection (supporting both Tropical and Sidereal).
+- **Nodes & Apsides**:
+  - North/South Lunar Nodes (True and Mean).
+  - Planetary Ascending/Descending Nodes.
+  - Perihelion/Aphelion (Apsides) and Perigee/Apogee (Moon).
+- **Horizon & Transits**:
+  - `HorizonService` for precise Sunrise, Sunset, and Transit calculations.
+  - Support for Civil, Nautical, and Astronomical twilight.
+- **Heliacal Events**:
+  - Heliacal Rising/Setting and Acronychal/Cosmical rising/setting.
+  - Support for planets and fixed stars.
+- **Horizontal Coordinates**: Added Azimuth, Altitude, and Zenith Distance to `PlanetPosition`.
+- **Stations**: Detection of planetary Direct/Retrograde stations.
+- **Parans & Antiscia**:
+  - `ParanService` for simultaneous horizon/meridian crossing detection.
+  - Automatic calculation of Antiscia and Contra-antiscia in `PlanetPosition`.
+- **Tropical Support**: Updated `NatalService` to allow explicitly requested tropical calculations.
+
+### Changed
+- `NatalService.calculate_positions` now accepts `lat`, `lon`, and `alt` to automatically populate horizontal coordinates.
+- Updated `PlanetPosition` domain model with 5 new properties (azimuth, altitude, zenith_distance, antiscia, contra_antiscia).
+
+### Fixed
+- Sidereal mode enforcement in `NatalService` fixed to allow tropical charts.
+- Improved precision in orbital root-finding for crossings.
+
 ## [1.1.0] - 2026-02-16
 
 ### Added

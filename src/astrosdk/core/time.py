@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import swisseph as swe
 from .errors import InvalidTimeError, InvalidTimeStandardError
@@ -29,6 +29,17 @@ class Time:
             self._dt.day, 
             self._dt.hour + self._dt.minute / 60.0 + self._dt.second / 3600.0 + self._dt.microsecond / 3600000000.0
         )
+
+    @classmethod
+    def from_julian_day(cls, jd: float) -> 'Time':
+        """
+        Create a Time object from a Julian Day (UT).
+        """
+        year, month, day, hour_float = swe.revjul(jd)
+        # Use timedelta to safely add fractional hours to start of day
+        base_dt = datetime(year, month, day, tzinfo=timezone.utc)
+        dt = base_dt + timedelta(hours=hour_float)
+        return cls(dt)
 
     @property
     def delta_t(self) -> float:

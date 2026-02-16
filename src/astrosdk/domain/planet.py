@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 from ..core.constants import Planet, ZodiacSign
 
 @dataclass(frozen=True)
@@ -10,6 +11,9 @@ class PlanetPosition:
     speed_long: float
     speed_lat: float
     speed_dist: float
+    # Local horizontal coordinates (optional)
+    azimuth: Optional[float] = None
+    altitude: Optional[float] = None
     
     @property
     def sign(self) -> ZodiacSign:
@@ -22,6 +26,21 @@ class PlanetPosition:
     @property
     def is_retrograde(self) -> bool:
         return self.speed_long < 0
+
+    @property
+    def antiscia(self) -> float:
+        """Mirror point over Cancer/Capricorn axis."""
+        return (180.0 - self.longitude) % 360.0
+
+    @property
+    def contra_antiscia(self) -> float:
+        """Mirror point over Aries/Libra axis."""
+        return (360.0 - self.longitude) % 360.0
+
+    @property
+    def zenith_distance(self) -> Optional[float]:
+        """Angle from zenith (90 - altitude)."""
+        return 90.0 - self.altitude if self.altitude is not None else None
 @dataclass(frozen=True)
 class PlanetaryPhenomena:
     planet: Planet
