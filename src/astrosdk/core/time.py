@@ -1,13 +1,12 @@
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
-import swisseph as swe
-from .errors import InvalidTimeError, InvalidTimeStandardError
-from .ephemeris import _SWISS_LOCK, DEFAULT_EPHE_FLAG
+import math
+from .exceptions import InvalidTimeError
 
 class Time:
     """
-    Deterministic time representation.
-    Always UTC.
+    Deterministic time representation (UTC).
+    Pure Value Object. No external dependencies.
     """
     def __init__(self, dt: datetime):
         if dt.tzinfo is None:
@@ -16,54 +15,8 @@ class Time:
 
     @property
     def dt(self) -> datetime:
+        """Returns the underlying UTC datetime."""
         return self._dt
-
-    @property
-    def julian_day(self) -> float:
-        """
-        Returns Julian Day in UT.
-        """
-        return swe.julday(
-            self._dt.year, 
-            self._dt.month, 
-            self._dt.day, 
-            self._dt.hour + self._dt.minute / 60.0 + self._dt.second / 3600.0 + self._dt.microsecond / 3600000000.0
-        )
-
-    @classmethod
-    def from_julian_day(cls, jd: float) -> 'Time':
-        """
-        Create a Time object from a Julian Day (UT).
-        """
-        year, month, day, hour_float = swe.revjul(jd)
-        # Use timedelta to safely add fractional hours to start of day
-        base_dt = datetime(year, month, day, tzinfo=timezone.utc)
-        dt = base_dt + timedelta(hours=hour_float)
-        return cls(dt)
-
-    @property
-    def delta_t(self) -> float:
-        """
-        Returns Delta-T in days using the high-precision deltat_ex.
-        """
-        with _SWISS_LOCK:
-            # swe.deltat_ex returns deltat_days as a float
-            return swe.deltat_ex(self.julian_day, DEFAULT_EPHE_FLAG)
-
-    @property
-    def jd_et(self) -> float:
-        """
-        Returns Julian Day in ET (Ephemeris Time).
-        """
-        return self.julian_day + self.delta_t
-
-    @property
-    def sidereal_time(self) -> float:
-        """
-        Returns Greenwich Mean Sidereal Time in hours.
-        """
-        with _SWISS_LOCK:
-            return swe.sidtime(self.julian_day)
 
     @classmethod
     def from_string(cls, date_str: str, format_str: str = "%Y-%m-%d %H:%M:%S", tz: str = "UTC") -> 'Time':
@@ -73,3 +26,42 @@ class Time:
             return cls(dt)
         except ValueError as e:
             raise InvalidTimeError(f"Invalid time format: {str(e)}")
+
+    @property
+    def julian_day(self) -> float:
+        """
+        Calculates Julian Day Number (UT) using pure Python.
+        Algorithm: Meeus (1998)
+        """
+        year = self._dt.year
+        month = self._dt.month
+        day = self._dt.day
+        
+        # Adjust for Jan/Feb
+        if month <= 2:
+            year -= 1
+            month += 12
+            
+        # Calculate time fraction
+        # (microsecond precision)
+        fraction = (self._dt.hour + self._dt.minute / 60.0 + self._dt.second / 3600.0 + self._dt.microsecond / 3600000000.0) / 24.0
+        
+        # Gregorian Calendar adjustment
+        # AstroSDK assumes Gregorian for all supported dates (standard modern astrology)
+        A = math.floor(year / 100)
+        B = 2 - A + math.floor(A / 4)
+        
+        jd_midnight = math.floor(365.25 * (year + 4716)) + math.floor(30.6001 * (month + 1)) + day + B - 1524.5
+        
+        return jd_midnight + fraction
+
+    def __repr__(self) -> str:
+        return f"Time(utc={self._dt.isoformat()})"
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Time):
+            return self._dt == other._dt
+        return False
+
+    def __hash__(self) -> int:
+        return hash(self._dt)
