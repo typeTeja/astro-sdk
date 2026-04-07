@@ -3,9 +3,22 @@ from datetime import datetime, timedelta
 from ..core.constants import Planet, SiderealMode
 from ..core.ephemeris import Ephemeris
 from ..core.time import Time
-from ..schemas.astro import PlanetPositionData
-from ..schemas.vedic import DashaPeriodSchema
+from ..domain.planet import PlanetPosition
 from .natal_service import NatalService
+
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class DashaPeriod:
+    """Domain model for a Vimshottari dasha period (no Pydantic dependency)."""
+
+    lord: str
+    start_time: datetime
+    end_time: datetime
+    level: int
+    sub_periods: list["DashaPeriod"] = field(default_factory=list)
 
 
 class VedicService:
@@ -34,12 +47,15 @@ class VedicService:
         time: Time,
         division: int,
         sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
-    ) -> list[PlanetPositionData]:
+    ) -> list[PlanetPosition]:
         """
         Calculate planetary positions for divisional charts (Vargas).
+        Returns domain PlanetPosition objects with the varga longitude.
         """
         planets = self.natal_service.calculate_positions(time, sidereal_mode)
-        varga_planets: list[PlanetPositionData] = []
+        from ..domain.planet import PlanetPosition as PP
+        from dataclasses import replace
+        varga_planets: list[PlanetPosition] = []
 
         for p in planets:
             original_lon = p.longitude
@@ -57,19 +73,17 @@ class VedicService:
             else:
                 # Standard proportional multiplication for other Vargas
                 v_lon = (original_lon * division) % 360
-                v_sign = int(v_lon / 30)
-                v_deg = v_lon % 30.0
 
+            # Return a new PlanetPosition frozen dataclass with the varga longitude
             varga_planets.append(
-                PlanetPositionData(
-                    planet=p.planet.name,
+                PP(
+                    planet=p.planet,
                     longitude=v_lon,
                     latitude=p.latitude,
                     distance=p.distance,
                     speed_long=p.speed_long,
-                    is_retrograde=p.speed_long < 0,
-                    sign=v_sign + 1,
-                    sign_name=PlanetPositionData.get_sign_name(v_lon),
+                    speed_lat=p.speed_lat,
+                    speed_dist=p.speed_dist,
                 )
             )
 
@@ -81,9 +95,10 @@ class VedicService:
         cycles: int = 1,
         levels: int = 2,
         sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
-    ) -> list[DashaPeriodSchema]:
+    ) -> list[DashaPeriod]:
         """
         Calculate Vimshottari Mahadasha and Antardasha periods.
+        Returns domain DashaPeriod objects.
         """
         moon_pos = self.eph.calculate_planet(natal_time.julian_day, Planet.MOON, sidereal=True)
         moon_lon = moon_pos["longitude"]
@@ -94,7 +109,7 @@ class VedicService:
         rem_nak = 1.0 - (nak_pos - nak_idx)
 
         start_lord_idx = nak_idx % 9
-        mahadashas: list[DashaPeriodSchema] = []
+        mahadashas: list[DashaPeriod] = []
         current_time = natal_time.dt
 
         def add_years(dt: datetime, years: float) -> datetime:
@@ -114,7 +129,7 @@ class VedicService:
                 start_dt = current_time
                 end_dt = add_years(current_time, float(duration_years))
 
-            md = DashaPeriodSchema(
+            md = DashaPeriod(
                 lord=lord_name,
                 start_time=start_dt,
                 end_time=end_dt,
@@ -133,12 +148,13 @@ class VedicService:
         return mahadashas
 
     def _calculate_antardashas(
-        self, mahadasha: DashaPeriodSchema, md_lord_idx: int
-    ) -> list[DashaPeriodSchema]:
+        self, mahadasha: DashaPeriod, md_lord_idx: int
+    ) -> list[DashaPeriod]:
         """
         Splits a Mahadasha into its 9 Antardashas.
+        Returns domain DashaPeriod objects.
         """
-        results: list[DashaPeriodSchema] = []
+        results: list[DashaPeriod] = []
         md_duration_days = (mahadasha.end_time - mahadasha.start_time).total_seconds() / (24 * 3600)
 
         current_start = mahadasha.start_time
@@ -154,7 +170,7 @@ class VedicService:
             end_time = current_start + timedelta(days=ad_duration_days)
 
             results.append(
-                DashaPeriodSchema(
+                DashaPeriod(
                     lord=ad_lord_name,
                     start_time=current_start,
                     end_time=end_time,

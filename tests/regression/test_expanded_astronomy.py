@@ -27,7 +27,7 @@ def test_planetary_phenomena_venus():
 
 def test_fixed_star_sirius():
     """Verify Sirius position (Sidereal Lahiri)."""
-    service = FixedStarService()
+    service = FixedStarService(Ephemeris())
     time = Time.from_string("2024-01-01 00:00:00")
     sirius = service.get_star_position("Sirius", time)
 

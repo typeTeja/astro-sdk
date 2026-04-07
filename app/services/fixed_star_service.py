@@ -6,10 +6,11 @@ from ..domain.planet import FixedStarPosition
 class FixedStarService:
     """
     Service for calculating fixed star positions.
+    Accepts Ephemeris via dependency injection (not self-instantiated).
     """
 
-    def __init__(self) -> None:
-        self._ephe = Ephemeris()
+    def __init__(self, ephemeris: Ephemeris) -> None:
+        self._ephe = ephemeris
 
     def get_star_position(
         self, star_name: str, time: Time, sidereal: bool = True

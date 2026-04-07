@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from ...core.constants import Planet, SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
-from ...schemas.events import IngressResponse, RetrogradeResponse
+from ...schemas.events import IngressResponse, IngressSchema, RetrogradeResponse, RetrogradeSchema
 from ...services.crossing_service import CrossingService
 from ...services.events_service import EventsService
 from .meta import get_meta
@@ -27,18 +27,23 @@ async def get_ingresses(
     Search for sign boundary crossings (0° sign entry) for a planet.
     """
     t_start = Time(start_time)
-
-    # Calculate count based on start/end or use default
-    # If end_time provided, enough to cover a year (12)
     count = 12 if end_time else 1
 
-    ingresses = events_service.get_sign_ingresses(
+    events = events_service.get_sign_ingresses(
         t_start, planet, count=count, sidereal_mode=sidereal_mode
     )
 
-    # Filtering if end_time provided
-    if end_time:
-        ingresses = [ing for ing in ingresses if ing.time <= end_time]
+    # Map domain PlanetaryEvent → IngressSchema
+    ingresses = [
+        IngressSchema(
+            planet=e.planet.name,
+            time=e.time,
+            from_sign=e.from_sign or "",
+            to_sign=e.to_sign or "",
+        )
+        for e in events
+        if end_time is None or e.time <= end_time
+    ]
 
     return IngressResponse(
         meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=ingresses
@@ -56,15 +61,20 @@ async def get_retrogrades(
     """
     t_start = Time(start_time)
 
-    # Sun and Moon don't go retrograde
     if planet in [Planet.SUN, Planet.MOON]:
         return RetrogradeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=[])
 
-    # Use a default count of 2 to catch the next Rx and Dir periods
-    stations = events_service.get_retrograde_stations(t_start, planet, count=2)
+    events = events_service.get_retrograde_stations(t_start, planet, count=2)
 
-    # Filtering if end_time provided
-    if end_time:
-        stations = [st for st in stations if st.time <= end_time]
+    # Map domain PlanetaryEvent → RetrogradeSchema
+    stations = [
+        RetrogradeSchema(
+            planet=e.planet.name,
+            time=e.time,
+            station_type=e.station_type or "UNKNOWN",
+        )
+        for e in events
+        if end_time is None or e.time <= end_time
+    ]
 
     return RetrogradeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=stations)

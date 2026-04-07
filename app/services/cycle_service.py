@@ -71,5 +71,7 @@ class CycleService:
         """
         Computes the synodic cycle phases between two planets.
         """
-        # ...
-        return []
+        raise NotImplementedError(
+            "compute_synodic_cycle() is not yet implemented. "
+            "Use SynodicService.find_next_event() for individual synodic events."
+        )

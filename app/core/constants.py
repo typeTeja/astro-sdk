@@ -2,6 +2,19 @@ from enum import IntEnum, StrEnum
 from typing import Any
 
 
+class AstroEventType(StrEnum):
+    """Canonical event types for all AstroEvent instances."""
+
+    INGRESS = "INGRESS"
+    STATION = "STATION"
+    ASPECT = "ASPECT"
+    ECLIPSE = "ECLIPSE"
+    SYNODIC = "SYNODIC"
+    RETURN = "RETURN"
+    PARAN = "PARAN"
+    HELIACAL = "HELIACAL"
+
+
 class ZodiacSign(IntEnum):
     ARIES = 0
     TAURUS = 1

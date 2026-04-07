@@ -7,13 +7,13 @@ from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.transits import TransitAspectSchema, TransitScanData, TransitScanResponse
 from ...services.aspect_service import AspectService
-from ...services.chart_engine import ChartEngine
+from ...engine.chart_engine import ChartEngine
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
 aspect_service = AspectService()
-chart_engine = ChartEngine(ephemeris)
+chart_engine = ChartEngine()
 
 
 @router.get(

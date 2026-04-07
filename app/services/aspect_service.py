@@ -29,9 +29,9 @@ class AspectService:
 
     # Septile family (7th harmonic)
     SEPTILE_ASPECTS = {
-        51.43: "SEPTILE",  # 360/7
-        102.86: "BISEPTILE",  # 720/7
-        154.29: "TRISEPTILE",  # 1080/7
+        360 / 7: "SEPTILE",    # 51.42857...°
+        720 / 7: "BISEPTILE",  # 102.85714...°
+        1080 / 7: "TRISEPTILE",  # 154.28571...°
     }
 
     # Novile family (9th harmonic)
@@ -43,9 +43,9 @@ class AspectService:
 
     # Undecile family (11th harmonic)
     UNDECILE_ASPECTS = {
-        32.73: "UNDECILE",  # 360/11
-        65.45: "BIUNDECILE",  # 720/11
-        98.18: "TRIUNDECILE",  # 1080/11
+        360 / 11: "UNDECILE",    # 32.72727...°
+        720 / 11: "BIUNDECILE",  # 65.45454...°
+        1080 / 11: "TRIUNDECILE",  # 98.18181...°
     }
 
     # All aspects combined

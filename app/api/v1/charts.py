@@ -15,13 +15,13 @@ from ...schemas.charts import (
     TransitChartData,
     TransitChartResponse,
 )
-from ...services.chart_engine import ChartEngine
+from ...engine.chart_engine import ChartEngine
 from ...services.panchanga_service import PanchangaService
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-chart_engine = ChartEngine(ephemeris)
+chart_engine = ChartEngine()
 pan_service = PanchangaService(ephemeris)
 
 
@@ -61,7 +61,7 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
             distance=p.distance,
             speed_long=p.speed_long,
             is_retrograde=p.is_retrograde,
-            sign=p.sign,
+            sign=p.sign + 1,
             sign_name=PlanetPositionData.get_sign_name(p.longitude),
         )
         for p in chart.planets
@@ -113,7 +113,7 @@ async def get_transit_chart(
             distance=p.distance,
             speed_long=p.speed_long,
             is_retrograde=p.is_retrograde,
-            sign=p.sign,
+            sign=p.sign + 1,
             sign_name=PlanetPositionData.get_sign_name(p.longitude),
         )
         for p in chart.planets

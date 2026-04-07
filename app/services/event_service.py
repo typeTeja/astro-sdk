@@ -1,7 +1,5 @@
 from typing import Any
 
-import swisseph as swe
-
 from ..core.constants import MAX_SEARCH_DAYS, Planet, SiderealMode, ZodiacSign
 from ..core.ephemeris import Ephemeris
 from ..core.errors import SearchRangeTooLargeError
@@ -59,7 +57,7 @@ class EventService:
                     AstroEvent(
                         type="INGRESS",
                         primary_body=planet,
-                        secondary_body=Planet.SUN,  # Placeholder for "Space"
+                        secondary_body=None,
                         julian_day=exact_jd,
                         data={
                             "sign_from": ZodiacSign(last_sign).name,
@@ -109,7 +107,7 @@ class EventService:
                     AstroEvent(
                         type="STATION",
                         primary_body=planet,
-                        secondary_body=Planet.SUN,
+                        secondary_body=None,
                         julian_day=exact_jd,
                         data={
                             "speed_before": f"{last_speed:.6f}",
@@ -185,8 +183,10 @@ class EventService:
         """
         Scan for exact aspects between two planets.
         """
-        events: list[AstroEvent] = []
-        return events
+        raise NotImplementedError(
+            "scan_aspects() is not yet implemented. "
+            "Use CrossingService.find_aspects() for aspect scanning."
+        )
 
     def find_next_solar_eclipse(self, start_time: Time) -> EclipseEvent:
         """
@@ -221,17 +221,14 @@ class EventService:
     ) -> dict[str, Any]:
         """
         Calculate rise and set times for a planet at a specific location.
+        Routes through the Ephemeris wrapper to maintain thread safety.
         """
         self.eph.set_topocentric(lat, lon, alt)
 
-        res_rise = swe.rise_trans(
-            time.julian_day, planet, swe.FLG_SWIEPH, swe.CALC_RISE, lon, lat, alt, 0, 0
-        )
-        res_set = swe.rise_trans(
-            time.julian_day, planet, swe.FLG_SWIEPH, swe.CALC_SET, lon, lat, alt, 0, 0
-        )
+        rise_jd = self.eph.calculate_rise_set(time.julian_day, planet, lat, lon, alt, is_rise=True)
+        set_jd = self.eph.calculate_rise_set(time.julian_day, planet, lat, lon, alt, is_rise=False)
 
         return {
-            "rise": res_rise[0] if res_rise else None,
-            "set": res_set[0] if res_set else None,
+            "rise": rise_jd,
+            "set": set_jd,
         }

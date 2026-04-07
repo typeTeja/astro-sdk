@@ -234,12 +234,25 @@ class Ephemeris:
                     f"({MAX_SEARCH_DAYS} days)"
                 )
 
+        _SOLAR_ECLIPSE_TYPE: dict[int, str] = {
+            1: "TOTAL",
+            2: "ANNULAR",
+            4: "HYBRID",
+            8: "PARTIAL",
+        }
+
         with _SWISS_LOCK:
             try:
                 res = swe.sol_eclipse_when_glob(jd_start, DEFAULT_EPHE_FLAG, 0, backward)
-                # tret is res[1]
+                # res[0] = bitmask flag; res[1] = tret array
+                # tret[0] = peak JD, tret[1] = umbral magnitude
+                ec_flag = int(res[0]) & 0xF
                 tret = res[1]
-                return {"peak_jd": tret[0], "magnitude": 1.0, "type": str(res[0])}
+                return {
+                    "peak_jd": float(tret[0]),
+                    "magnitude": float(tret[1]),
+                    "type": _SOLAR_ECLIPSE_TYPE.get(ec_flag, f"UNKNOWN({ec_flag})"),
+                }
             except Exception as e:
                 raise EphemerisError(f"Solar eclipse search failed: {str(e)}") from e
 
@@ -254,11 +267,24 @@ class Ephemeris:
             if search_range > MAX_SEARCH_DAYS:
                 raise SearchRangeTooLargeError("Search range error")
 
+        _LUNAR_ECLIPSE_TYPE: dict[int, str] = {
+            1: "TOTAL",
+            2: "PARTIAL",
+            4: "PENUMBRAL",
+        }
+
         with _SWISS_LOCK:
             try:
                 res = swe.lun_eclipse_when(jd_start, DEFAULT_EPHE_FLAG, 0, backward)
+                # res[0] = bitmask; res[1] = tret array
+                # tret[0] = peak JD, tret[1] = umbral magnitude
+                ec_flag = int(res[0]) & 0xF
                 tret = res[1]
-                return {"peak_jd": tret[0], "magnitude": 1.0, "type": str(res[0])}
+                return {
+                    "peak_jd": float(tret[0]),
+                    "magnitude": float(tret[1]),
+                    "type": _LUNAR_ECLIPSE_TYPE.get(ec_flag, f"UNKNOWN({ec_flag})"),
+                }
             except Exception as e:
                 raise EphemerisError(f"Lunar eclipse search failed: {str(e)}") from e
 

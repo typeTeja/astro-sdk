@@ -31,8 +31,14 @@ class EphemerisContext:
 
     def __enter__(self) -> Self:
         with self._state_lock:
-            # Note: pyswisseph is global, we apply the new state
             if self.sid_mode is not None:
+                # Save the actual current sidereal mode before overwriting
+                try:
+                    prev_mode_id = int(swe.get_ayanamsa_ex_ut(0, 0)[0])  # type: ignore[attr-defined]
+                    self._prev_sid_mode = SiderealMode(prev_mode_id)
+                except Exception:
+                    # Fallback to project default if we cannot determine current mode
+                    self._prev_sid_mode = SiderealMode.LAHIRI
                 swe.set_sid_mode(self.sid_mode, 0, 0)
 
             if self.topo is not None:
@@ -49,14 +55,16 @@ class EphemerisContext:
         exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
-        # Restore defaults
-        if self.tidal is not None:
-            swe.set_tid_acc(swe.TIDAL_AUTOMATIC)
+        with self._state_lock:
+            # Restore tidal acceleration to automatic
+            if self.tidal is not None:
+                swe.set_tid_acc(swe.TIDAL_AUTOMATIC)
 
-        # Restore sidereal mode to Lahiri (project policy) if it was changed
-        if self.sid_mode is not None:
-            swe.set_sid_mode(SiderealMode.LAHIRI, 0, 0)
+            # Restore the actual previous sidereal mode (not always Lahiri)
+            if self.sid_mode is not None:
+                restore = self._prev_sid_mode if self._prev_sid_mode is not None else SiderealMode.LAHIRI
+                swe.set_sid_mode(restore, 0, 0)
 
-        # Reset topo if it was changed (return to geocentric)
-        if self.topo is not None:
-            swe.set_topo(0, 0, 0)  # Back to geocentric center
+            # Reset topocentric parameters to geocentric center
+            if self.topo is not None:
+                swe.set_topo(0, 0, 0)

@@ -7,7 +7,7 @@ from ..core.constants import Planet
 class AstroEvent:
     type: str  # Ingress, Station, Aspect
     primary_body: Planet
-    secondary_body: Planet
+    secondary_body: Planet | None  # None for single-body events (ingress, station)
     julian_day: float
     data: dict[str, str]  # Metadata
 

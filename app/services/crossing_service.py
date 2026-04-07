@@ -1,4 +1,5 @@
 import math
+import logging
 from datetime import UTC
 from typing import Any
 
@@ -6,6 +7,11 @@ from ..core.constants import Planet, SiderealMode
 from ..core.ephemeris import Ephemeris
 from ..core.errors import EphemerisError
 from ..core.time import Time
+
+# Maximum iterations in find_ingresses() to prevent infinite scan loops
+_MAX_INGRESS_SCAN_ITERATIONS = 50
+
+logger = logging.getLogger(__name__)
 
 
 class CrossingService:
@@ -164,9 +170,9 @@ class CrossingService:
 
         results: list[Any] = []
         curr = start_time
-        max_safety = 50
+        iterations = 0
 
-        while curr.julian_day < end_time.julian_day and max_safety > 0:
+        while curr.julian_day < end_time.julian_day and iterations < _MAX_INGRESS_SCAN_ITERATIONS:
             try:
                 ing_time, sign_num = self.find_next_ingress(planet, curr)
                 if ing_time.julian_day <= end_time.julian_day:
@@ -182,9 +188,23 @@ class CrossingService:
                     curr = Time.from_julian_day(ing_time.julian_day + 0.1)
                 else:
                     break
-            except Exception:
+            except EphemerisError:
+                # Ephemeris calculation failed — log and stop the scan
+                logger.exception(
+                    "Ephemeris error during ingress scan for %s at JD=%.4f",
+                    planet.name,
+                    curr.julian_day,
+                )
                 break
-            max_safety -= 1
+            except Exception:
+                # Unexpected error — log with traceback and abort
+                logger.exception(
+                    "Unexpected error during ingress scan for %s at JD=%.4f",
+                    planet.name,
+                    curr.julian_day,
+                )
+                break
+            iterations += 1
 
         return results
 

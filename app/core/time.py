@@ -30,8 +30,8 @@ class Time:
             dt.day
             + dt.hour / 24.0
             + dt.minute / 1440.0
-            + dt.second / 84600.0  # Note: Standard approx
-            + dt.microsecond / 84600000000.0
+            + dt.second / 86400.0  # Seconds in a day
+            + dt.microsecond / 86400000000.0
         )
 
         if m <= 2:
