@@ -36,6 +36,7 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
     house_sys = HouseSystem.PLACIDUS
     sidereal_mode = SiderealMode.LAHIRI
     is_sidereal = True
+    heliocentric = False
 
     if request.settings:
         if "house_system" in request.settings:
@@ -44,6 +45,8 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
             sidereal_mode = SiderealMode(request.settings["sidereal_mode"])
         if "is_sidereal" in request.settings:
             is_sidereal = bool(request.settings["is_sidereal"])
+        if "heliocentric" in request.settings:
+            heliocentric = bool(request.settings["heliocentric"])
 
     chart = chart_engine.create_chart(
         t,
@@ -52,6 +55,7 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
         system=house_sys,
         sidereal_mode=sidereal_mode,
         is_sidereal=is_sidereal,
+        heliocentric=heliocentric,
     )
 
     planets = [
@@ -92,6 +96,7 @@ async def get_transit_chart(
     longitude: float = Query(0.0),
     sidereal: bool = Query(True),
     sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
+    heliocentric: bool = Query(False),
 ) -> TransitChartResponse:
     """
     Calculate planetary positions for a given moment and location (Transit Chart).
@@ -105,6 +110,7 @@ async def get_transit_chart(
         system=HouseSystem.PLACIDUS,
         sidereal_mode=sidereal_mode,
         is_sidereal=sidereal,
+        heliocentric=heliocentric,
     )
 
     planets = [

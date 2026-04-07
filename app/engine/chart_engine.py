@@ -23,6 +23,7 @@ class ChartEngine:
         system: HouseSystem = HouseSystem.PLACIDUS,
         sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
         is_sidereal: bool = True,
+        heliocentric: bool = False,
     ) -> Chart:
         """
         Generate a complete Astrological Chart.
@@ -33,7 +34,8 @@ class ChartEngine:
         planets = self._natal_service.calculate_positions(
             time=time, 
             sidereal_mode=mode_for_calc, 
-            is_sidereal=is_sidereal
+            is_sidereal=is_sidereal,
+            heliocentric=heliocentric
         )
         houses = self._natal_service.calculate_houses(
             time=time, 
