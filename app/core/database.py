@@ -1,10 +1,11 @@
+import os
 from collections.abc import Generator
 
 from sqlmodel import Session, SQLModel, create_engine
 
 # SQLite persistence to prevent rework when scaling to PostgreSQL
 sqlite_file_name = "astrosdk.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+sqlite_url = os.environ.get("SQLITE_URL", f"sqlite:///{sqlite_file_name}")
 
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, echo=False, connect_args=connect_args)

@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 from threading import RLock
 from typing import Any
 
@@ -53,7 +54,10 @@ class Ephemeris:
             # Load environment variables from .env if present
             load_dotenv(find_dotenv())
 
-            self._ephe_path = os.getenv("SE_EPHE_PATH", "/usr/share/libswe/ephe")
+            # Set default path relative to the app package for portability
+            pkg_dir = os.path.dirname(os.path.dirname(__file__))
+            default_ephe_path = os.path.join(pkg_dir, "resources", "ephe")
+            self._ephe_path = os.getenv("SE_EPHE_PATH", default_ephe_path)
 
             # Initialize SwissEph
             try:

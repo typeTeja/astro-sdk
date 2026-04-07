@@ -49,3 +49,23 @@ class SectorHitSchema(BaseModel):
 
 class SectorResponse(BaseAstroResponse[list[SectorHitSchema]]):
     pass
+
+
+class PlanetaryStrengthSchema(BaseModel):
+    planet: str
+    positional_strength: float
+    directional_strength: float
+    temporal_strength: float
+    motional_strength: float
+    natural_strength: float
+    aspectual_strength: float
+    total_rupas: float
+
+class ShadbalaResponse(BaseAstroResponse[list[PlanetaryStrengthSchema]]):
+    pass
+
+class AshtakavargaData(BaseModel):
+    matrix: dict[str, list[int]]
+
+class AshtakavargaResponse(BaseAstroResponse[AshtakavargaData]):
+    pass

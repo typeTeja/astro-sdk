@@ -139,7 +139,13 @@ class VedicService:
 
             # 2. Level 2 (Antardasha)
             if levels >= 2:
-                md.sub_periods = self._calculate_antardashas(md, lord_iter % 9)
+                md.sub_periods = self._calculate_sub_dashas(md, lord_iter % 9, 2)
+                
+                # 3. Level 3 (Pratyantardasha)
+                if levels >= 3:
+                    for ad_idx, ad in enumerate(md.sub_periods):
+                        # Lord index wraps around correctly from the AD Lord
+                        ad.sub_periods = self._calculate_sub_dashas(ad, (lord_iter % 9 + ad_idx) % 9, 3)
 
             mahadashas.append(md)
             current_time = end_dt
@@ -147,37 +153,107 @@ class VedicService:
 
         return mahadashas
 
-    def _calculate_antardashas(
-        self, mahadasha: DashaPeriod, md_lord_idx: int
+    def _calculate_sub_dashas(
+        self, parent_dasha: DashaPeriod, parent_lord_idx: int, target_level: int
     ) -> list[DashaPeriod]:
         """
-        Splits a Mahadasha into its 9 Antardashas.
+        Splits a parent Dasha into its 9 proportional sub-periods.
         Returns domain DashaPeriod objects.
         """
         results: list[DashaPeriod] = []
-        md_duration_days = (mahadasha.end_time - mahadasha.start_time).total_seconds() / (24 * 3600)
+        parent_duration_days = (parent_dasha.end_time - parent_dasha.start_time).total_seconds() / (24 * 3600)
 
-        current_start = mahadasha.start_time
+        current_start = parent_dasha.start_time
         total_cycle_years = 120.0
 
         for i in range(9):
-            ad_lord_idx = (md_lord_idx + i) % 9
-            ad_lord_name, ad_lord_years = self.DASHA_LORDS[ad_lord_idx]
+            sub_lord_idx = (parent_lord_idx + i) % 9
+            sub_lord_name, sub_lord_years = self.DASHA_LORDS[sub_lord_idx]
 
-            proportion = ad_lord_years / total_cycle_years
-            ad_duration_days = md_duration_days * proportion
+            proportion = sub_lord_years / total_cycle_years
+            sub_duration_days = parent_duration_days * proportion
 
-            end_time = current_start + timedelta(days=ad_duration_days)
+            end_time = current_start + timedelta(days=sub_duration_days)
 
             results.append(
                 DashaPeriod(
-                    lord=ad_lord_name,
+                    lord=sub_lord_name,
                     start_time=current_start,
                     end_time=end_time,
-                    level=2,
+                    level=target_level,
                     sub_periods=[],
                 )
             )
             current_start = end_time
 
         return results
+
+
+@dataclass
+class PlanetaryStrength:
+    """Domain model for Shadbala components."""
+    planet: str
+    positional_strength: float
+    directional_strength: float
+    temporal_strength: float
+    motional_strength: float
+    natural_strength: float
+    aspectual_strength: float
+    total_rupas: float
+
+
+class AdvancedVedicService:
+    """
+    Experimental service for high-density mathematical matrices: Shadbala and Ashtakavarga.
+    """
+    def __init__(self, ephemeris: Ephemeris):
+        self.eph = ephemeris
+        self.natal_service = NatalService(ephemeris)
+
+    def calculate_ashtakavarga(self, time: Time, sidereal_mode: SiderealMode) -> dict[str, list[int]]:
+        """
+        [EXPERIMENTAL] Ashtakavarga Matrix Stub.
+        Generates the 8-fold scoring matrix. Currently returns a structural baseline.
+        """
+        # A true Ashtakavarga calculation sweeps 8 independent origin points (7 planets + ascendant)
+        # against 12 signs, assessing 337 total independent aspectual "bindus" (dots).
+        # This returns the structural dictionary layout mapped to the 12 signs.
+        planets = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "ASCENDANT"]
+        matrix = {}
+        for p in planets:
+            # Baseline stub assigning standard roughly mean bindu distribution (total 337 over 8).
+            matrix[p] = [4, 4, 5, 3, 4, 4, 3, 4, 5, 4, 3, 4]  # 12 signs
+            
+        return matrix
+
+    def calculate_shadbala(self, time: Time, sidereal_mode: SiderealMode) -> list[PlanetaryStrength]:
+        """
+        [EXPERIMENTAL] Shadbala Calculation Stub.
+        Evaluates the 6-fold planetary strength.
+        """
+        # True Shadbala requires complex ephemeris manipulation (e.g. Uchchabala relies on exact 
+        # declination offsets from specific exaltation degrees, Cheshtabala relies on exact
+        # retrograde speed quotients vs true speed, etc.).
+        
+        # We calculate the base positions to map the objects securely.
+        positions = self.natal_service.calculate_positions(time, sidereal_mode)
+        
+        strengths = []
+        for p in positions:
+            p_name = p.planet.name
+            if p_name in ["URANUS", "NEPTUNE", "PLUTO", "RAHU", "KETU"]:
+                continue # Vedic strength only applies to visible 7
+                
+            # Foundational stub
+            strengths.append(PlanetaryStrength(
+                planet=p_name,
+                positional_strength=1.0,  # Sthana Bala
+                directional_strength=1.0, # Dig Bala
+                temporal_strength=1.0,    # Kala Bala
+                motional_strength=1.0 if not p.is_retrograde else 2.0, # Cheshta Bala
+                natural_strength=1.0,     # Naisargika Bala
+                aspectual_strength=1.0,   # Drik Bala
+                total_rupas=6.0
+            ))
+            
+        return strengths

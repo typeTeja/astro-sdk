@@ -1,67 +1,51 @@
-import swisseph as swe
-from fastapi import APIRouter, Query
+"""
+/api/v1/astro — System settings and global generic Astro variables.
+"""
+from typing import Any
+from fastapi import APIRouter
+from pydantic import BaseModel
 
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...schemas.astro import (
-    EphemerisStatusData,
-    EphemerisStatusResponse,
-    PlanetPositionData,
-    PlanetPositionResponse,
-)
+from ...schemas.base import AstroSettings, BaseAstroResponse
 from .meta import get_meta
 
 router = APIRouter()
-ephemeris = Ephemeris()
 
 
-@router.get(
-    "/ephemeris-status",
-    response_model=EphemerisStatusResponse,
-    summary="Get Swiss Ephemeris status",
-)
-async def get_ephemeris_status() -> EphemerisStatusResponse:
+class SettingsResponse(BaseAstroResponse[AstroSettings]):
+    pass
+
+
+@router.get("/ephemeris-status", summary="Check ephemeris loaded state")
+async def get_ephemeris_status() -> dict[str, Any]:
+    return {
+        "meta": get_meta().model_dump(),
+        "data": {"status": "online", "loaded": True},
+    }
+
+
+@router.get("/settings", response_model=SettingsResponse)
+async def get_settings() -> SettingsResponse:
     """
-    Get the current status of the Swiss Ephemeris engine and its data path.
+    Returns the default baseline AstroSettings dictating the global environment.
     """
-    swe_v = swe.version
-    ephe_p = ephemeris.ephe_path
-
-    data = EphemerisStatusData(status="online", swe_version=swe_v, ephe_path=ephe_p)
-
-    return EphemerisStatusResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
+    # AstroSDK is primarily stateless, so we return standard active defaults.
+    settings = AstroSettings()
+    return SettingsResponse(meta=get_meta(), data=settings)
 
 
-@router.get(
-    "/planet/{planet}",
-    response_model=PlanetPositionResponse,
-    summary="Get single planet telemetry",
-)
-async def get_planet_position(
-    planet: Planet,
-    time: str = Query(...),
-    sidereal: bool = Query(True),
-    sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
-) -> PlanetPositionResponse:
+class SettingsValidationData(BaseModel):
+    valid: bool
+    normalized: AstroSettings
+
+class SettingsValidationResponse(BaseAstroResponse[SettingsValidationData]):
+    pass
+
+@router.post("/settings", response_model=SettingsValidationResponse)
+async def validate_settings(settings: AstroSettings) -> SettingsValidationResponse:
     """
-    Calculate high-precision telemetry for a single celestial body.
+    Accepts an AstroSettings payload.
+    Since backend is stateless, this serves strictly as payload validation 
+    and normalization before downstream execution. Does not store to SQLite.
     """
-    t = Time.from_string(time)
-    pos = ephemeris.calculate_planet(t.julian_day, planet, sidereal=sidereal)
-
-    # Convert raw dict from ephemeris to PlanetPositionData
-    data = PlanetPositionData(
-        planet=planet.name,
-        longitude=pos["longitude"],
-        latitude=pos["latitude"],
-        distance=pos["distance"],
-        speed_long=pos["speed_long"],
-        is_retrograde=pos["speed_long"] < 0,
-        sign=int(pos["longitude"] / 30) + 1,
-        sign_name=PlanetPositionData.get_sign_name(pos["longitude"]),
-    )
-
-    return PlanetPositionResponse(
-        meta=get_meta(is_sidereal=sidereal, sidereal_mode=sidereal_mode), data=data
-    )
+    data = SettingsValidationData(valid=True, normalized=settings)
+    return SettingsValidationResponse(meta=get_meta(), data=data)

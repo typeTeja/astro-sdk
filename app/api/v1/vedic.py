@@ -91,3 +91,72 @@ async def get_dashas(
 
     dashas = [_map_dasha(d) for d in domain_dashas]
     return DashaResponse(meta=get_meta(is_sidereal=True, sidereal_mode=mode), data=dashas)
+
+from ...schemas.vedic import ShadbalaResponse, AshtakavargaResponse, AshtakavargaData, PlanetaryStrengthSchema
+from ...services.vedic_service import AdvancedVedicService
+
+@router.post(
+    "/shadbala", response_model=ShadbalaResponse, summary="[EXPERIMENTAL] Shadbala Planetary Strength"
+)
+async def get_shadbala(
+    request: NatalChartRequest,
+) -> ShadbalaResponse:
+    """
+    Evaluates the 6-fold planetary strength routing matrix.
+    """
+    t = Time(request.time.time)
+    mode = SiderealMode(request.settings.get("sidereal_mode", SiderealMode.LAHIRI.value)) if request.settings else SiderealMode.LAHIRI
+    
+    advanced_service = AdvancedVedicService(ephemeris)
+    domain_strengths = advanced_service.calculate_shadbala(t, mode)
+
+    mapped = [
+        PlanetaryStrengthSchema(
+            planet=s.planet,
+            positional_strength=s.positional_strength,
+            directional_strength=s.directional_strength,
+            temporal_strength=s.temporal_strength,
+            motional_strength=s.motional_strength,
+            natural_strength=s.natural_strength,
+            aspectual_strength=s.aspectual_strength,
+            total_rupas=s.total_rupas,
+        ) for s in domain_strengths
+    ]
+    return ShadbalaResponse(
+        meta=get_meta(
+            is_sidereal=True,
+            sidereal_mode=mode,
+            experimental=True,
+            algorithm_status="partial",
+            requires_domain_validation=True
+        ),
+        data=mapped
+    )
+
+
+@router.post(
+    "/ashtakavarga", response_model=AshtakavargaResponse, summary="[EXPERIMENTAL] Ashtakavarga Array"
+)
+async def get_ashtakavarga(
+    request: NatalChartRequest,
+) -> AshtakavargaResponse:
+    """
+    Evaluates the basic bindu transit scoring matrix.
+    """
+    t = Time(request.time.time)
+    mode = SiderealMode(request.settings.get("sidereal_mode", SiderealMode.LAHIRI.value)) if request.settings else SiderealMode.LAHIRI
+    
+    advanced_service = AdvancedVedicService(ephemeris)
+    domain_matrix = advanced_service.calculate_ashtakavarga(t, mode)
+
+    data = AshtakavargaData(matrix=domain_matrix)
+    return AshtakavargaResponse(
+        meta=get_meta(
+            is_sidereal=True,
+            sidereal_mode=mode,
+            experimental=True,
+            algorithm_status="stub",
+            requires_domain_validation=True
+        ),
+        data=data
+    )

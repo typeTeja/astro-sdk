@@ -7,6 +7,11 @@ def get_meta(
     sidereal_mode: SiderealMode | None = SiderealMode.LAHIRI,
     heliocentric: bool = False,
     house_system: HouseSystem = HouseSystem.WHOLE_SIGN,
+    astro_data_only: bool | None = None,
+    no_financial_advice: bool | None = None,
+    experimental: bool | None = None,
+    algorithm_status: str | None = None,
+    requires_domain_validation: bool | None = None,
 ) -> AstroMeta:
     """Standardized metadata generator for all API responses."""
     ayan_name = None
@@ -18,4 +23,9 @@ def get_meta(
         ayanamsa=ayan_name,
         house_system=getattr(house_system, "name", str(house_system)),
         coordinate_system="heliocentric" if heliocentric else "geocentric",
+        astro_data_only=astro_data_only,
+        no_financial_advice=no_financial_advice,
+        experimental=experimental,
+        algorithm_status=algorithm_status,
+        requires_domain_validation=requires_domain_validation,
     )

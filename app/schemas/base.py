@@ -71,6 +71,11 @@ class AstroMeta(BaseModel):
     house_system: str = Field(..., description="House system used")
     coordinate_system: str = Field(..., description="geocentric or heliocentric")
     calculation_time: str = "UTC"
+    astro_data_only: bool | None = Field(None, description="Disclaimer: Confirms response contains pure astronomical data")
+    no_financial_advice: bool | None = Field(None, description="Disclaimer: Not financial advice")
+    experimental: bool | None = Field(None, description="Flags this data as deriving from a partial or experimental algorithm route.")
+    algorithm_status: str | None = Field(None, description="Indicates the depth of the algorithm logic (e.g. 'partial', 'stub', 'production').")
+    requires_domain_validation: bool | None = Field(None, description="Flags whether the consumer must handle geometric boundary tuning.")
 
 
 class BaseAstroResponse[T](BaseModel):

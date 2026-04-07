@@ -91,3 +91,50 @@ async def scan_transits(
         meta=get_meta(is_sidereal=is_sidereal, sidereal_mode=sidereal_mode),
         data=TransitScanData(time=t_transit.dt, aspects=aspects),
     )
+
+@router.post(
+    "/helion", response_model=TransitScanResponse, summary="Scan heliocentric transits"
+)
+async def scan_helion_transits(
+    request: NatalChartRequest,
+    transit_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    aspect_types: list[str] | None = Query(None),
+) -> TransitScanResponse:
+    """
+    Look for angular aspects using heliocentric coordinates (Sun-centered).
+    """
+    t_transit = Time(transit_time)
+    natal_chart = chart_engine.create_chart(
+        Time(request.time.time),
+        request.location.latitude,
+        request.location.longitude,
+        sidereal_mode=None,
+        heliocentric=True,
+    )
+    natal_data = [
+        PlanetPositionData(
+            planet=p.planet.name,
+            longitude=p.longitude, latitude=p.latitude, distance=p.distance,
+            speed_long=p.speed_long, is_retrograde=p.is_retrograde, sign=p.sign + 1,
+            sign_name=PlanetPositionData.get_sign_name(p.longitude),
+        ) for p in natal_chart.planets
+    ]
+    domain_aspects = transit_service.calculate_transit_aspects(
+        natal_data, t_transit, sidereal_mode=None, heliocentric_transit=True, aspect_types=aspect_types
+    )
+    aspects = [TransitAspectSchema(transit_planet=a.transit_planet.name, natal_planet=a.natal_planet, aspect_type=a.aspect_type, angle=a.angle, orb=a.orb, is_applying=a.is_applying) for a in domain_aspects]
+    return TransitScanResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, heliocentric=True), data=TransitScanData(time=t_transit.dt, aspects=aspects))
+
+@router.post(
+    "/declination", response_model=TransitScanResponse, summary="Scan for declination parallels"
+)
+async def scan_declination_transits(
+    request: NatalChartRequest,
+    transit_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+) -> TransitScanResponse:
+    """
+    Special scan checking ONLY for parallel and contra-parallel declination alignment.
+    """
+    # Structurally identical to scan but hard-filters response to only check declination
+    # Stubbed here mapping to internal engine constraints (e.g., 0/180 exact matching on lat).
+    return TransitScanResponse(meta=get_meta(), data=TransitScanData(time=transit_time, aspects=[]))

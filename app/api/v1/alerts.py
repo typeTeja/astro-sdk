@@ -81,14 +81,32 @@ async def get_rules(session: Annotated[Session, Depends(get_session)]) -> AlertR
     return AlertRuleListResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
 
 
-@router.post("/scan", response_model=AlertScanResponse, summary="Run manual scan for triggers")
+from fastapi import BackgroundTasks
+
+@router.post("/scan", summary="Run manual scan for triggers")
 async def scan_alerts(
+    background_tasks: BackgroundTasks,
     session: Annotated[Session, Depends(get_session)],
     window_days: float = Query(1.0, ge=0.1, le=365.0),
-) -> AlertScanResponse:
+    background: bool = Query(False, description="Run scan silently in background to avoid blocking"),
+) -> dict | AlertScanResponse:
     """
-    Manually trigger a scan of all active rules within a given look-back window.
+    Trigger a scan of all active rules within a given look-back window.
     """
+    if background:
+        # Create a fresh isolated session for the background thread,
+        # session is attached to current request state. To be truly safe with SQLAlchemy/SQLModel:
+        # It's better to instantiate a new session inside the background task if it takes too long.
+        # But for this simple implementation:
+        def bg_scan(w_days: float):
+            from ...core.database import SessionLocal
+            with SessionLocal() as bg_session:
+                scanner = ScannerService(bg_session, ephemeris)
+                scanner.scan_active_rules(w_days)
+                
+        background_tasks.add_task(bg_scan, window_days)
+        return {"meta": get_meta(is_sidereal=False, sidereal_mode=None).model_dump(), "data": {"status": "Accepted. Scanning running in background."}}
+
     scanner = ScannerService(session, ephemeris)
     results = scanner.scan_active_rules(window_days)
 
@@ -106,3 +124,19 @@ async def scan_alerts(
         )
 
     return AlertScanResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=mapped)
+
+@router.delete("/{rule_id}", summary="Delete an alert rule")
+async def delete_rule(
+    rule_id: int, session: Annotated[Session, Depends(get_session)]
+) -> dict[str, str]:
+    """
+    Remove an alert rule permanently from the database.
+    """
+    rule = session.get(AlertRule, rule_id)
+    if not rule:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Rule not found")
+        
+    session.delete(rule)
+    session.commit()
+    return {"status": "success", "message": f"Rule {rule_id} deleted."}
