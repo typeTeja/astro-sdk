@@ -21,15 +21,15 @@ class NatalService:
         lat: float | None = None,
         lon: float | None = None,
         alt: float = 0.0,
+        is_sidereal: bool = True,
     ) -> list[PlanetPosition]:
         """
         Calculate all planetary positions for a given time.
         """
-        # Ensure mode is set if provided
-        if sidereal_mode is not None:
+        # Ensure mode is set if sidereal requested
+        if is_sidereal and sidereal_mode is not None:
             self.eph.set_sidereal_mode(sidereal_mode)
 
-        is_sidereal = sidereal_mode is not None
         jd = time.julian_day
         results: list[PlanetPosition] = []
 
@@ -98,15 +98,17 @@ class NatalService:
         lon: float,
         system: HouseSystem = HouseSystem.PLACIDUS,
         sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
+        is_sidereal: bool = True,
     ) -> ChartHouses:
         """
         Calculate house cusps.
         """
-        self.eph.set_sidereal_mode(sidereal_mode)
+        if is_sidereal:
+            self.eph.set_sidereal_mode(sidereal_mode)
         jd = time.julian_day
 
         try:
-            data = self.eph.calculate_houses(jd, lat, lon, system, sidereal=True)
+            data = self.eph.calculate_houses(jd, lat, lon, system, sidereal=is_sidereal)
         except Exception:
             # Fallback for high latitudes where Placidus/Koch fail
             if system in [HouseSystem.PLACIDUS, HouseSystem.KOCH]:

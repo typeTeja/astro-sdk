@@ -51,6 +51,7 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
         request.location.longitude,
         system=house_sys,
         sidereal_mode=sidereal_mode,
+        is_sidereal=is_sidereal,
     )
 
     planets = [
@@ -103,6 +104,7 @@ async def get_transit_chart(
         longitude,
         system=HouseSystem.PLACIDUS,
         sidereal_mode=sidereal_mode,
+        is_sidereal=sidereal,
     )
 
     planets = [

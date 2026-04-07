@@ -22,12 +22,27 @@ class ChartEngine:
         lon: float,
         system: HouseSystem = HouseSystem.PLACIDUS,
         sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
+        is_sidereal: bool = True,
     ) -> Chart:
         """
         Generate a complete Astrological Chart.
         """
-        planets = self._natal_service.calculate_positions(time, sidereal_mode)
-        houses = self._natal_service.calculate_houses(time, lat, lon, system, sidereal_mode)
+        # Pass None to signal Tropical Mode
+        mode_for_calc = sidereal_mode if is_sidereal else None
+        
+        planets = self._natal_service.calculate_positions(
+            time=time, 
+            sidereal_mode=mode_for_calc, 
+            is_sidereal=is_sidereal
+        )
+        houses = self._natal_service.calculate_houses(
+            time=time, 
+            lat=lat, 
+            lon=lon, 
+            system=system, 
+            sidereal_mode=sidereal_mode, 
+            is_sidereal=is_sidereal
+        )
 
         return Chart(
             metadata={
