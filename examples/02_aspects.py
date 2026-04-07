@@ -1,64 +1,70 @@
 """
 Aspect Calculation Example
 
-This example shows how to calculate aspects between planets
-and identify applying vs separating aspects.
+This example demonstrates how to calculate aspects between planets
+using the new 20-aspect family filtering and custom orbs.
 """
 
-from datetime import datetime, timezone
-from astrosdk.core.time import Time
-from astrosdk.core.ephemeris import Ephemeris
-from astrosdk.services.natal_service import NatalService
-from astrosdk.services.aspect_service import AspectService
+from datetime import UTC, datetime
+
+from app.core.time import Time
+from app.engine.chart_engine import ChartEngine
+from app.services.aspect_service import AspectService
+
 
 def main():
-    # Initialize services
-    eph = Ephemeris()
-    natal_service = NatalService(eph)
+    # 1. Initialize services
+    engine = ChartEngine()
     aspect_service = AspectService()
-    
-    # Calculate chart for a specific time
-    birth_time = Time(datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc))
-    
-    chart = natal_service.calculate_natal_chart(
-        time=birth_time,
-        latitude=40.7128,
-        longitude=-74.0060
+
+    # 2. Calculate chart for a specific time
+    # (High-level engine handles positions and houses)
+    event_time = Time(datetime(2024, 3, 20, 3, 6, tzinfo=UTC)) # Aries Ingress
+
+    chart = engine.create_chart(
+        time=event_time,
+        lat=51.5074,
+        lon=-0.1278 # London
     )
-    
-    # Calculate aspects
-    aspects = aspect_service.calculate_aspects(chart.planets)
-    
-    # Display aspects
+
+    # 3. Calculate Major Aspects (Ptolemaic)
     print("=" * 70)
-    print("PLANETARY ASPECTS")
+    print("MAJOR ASPECTS (5 Original)")
     print("=" * 70)
-    print(f"Date: {birth_time.dt}")
-    print()
-    
-    # Group by aspect type
-    aspect_types = {}
-    for aspect in aspects:
-        if aspect.type not in aspect_types:
-            aspect_types[aspect.type] = []
-        aspect_types[aspect.type].append(aspect)
-    
-    # Display each type
-    for aspect_type in ["CONJUNCTION", "OPPOSITION", "TRINE", "SQUARE", "SEXTILE"]:
-        if aspect_type in aspect_types:
-            print(f"\n{aspect_type}S")
-            print("-" * 70)
-            for aspect in aspect_types[aspect_type]:
-                applying = "Applying" if aspect.applying else "Separating"
-                print(f"{aspect.p1.name:10} {aspect.type:12} {aspect.p2.name:10} "
-                      f"(orb: {aspect.orb:4.2f}°) [{applying}]")
-    
-    # Summary
-    print()
+    major_aspects = aspect_service.calculate_aspects(chart.planets, aspect_types=['major'])
+    display_aspects(major_aspects)
+
+    # 4. Calculate Minor + Kepler Aspects
+    print("\n" + "=" * 70)
+    print("MINOR & KEPLER ASPECTS")
     print("=" * 70)
-    print(f"Total aspects found: {len(aspects)}")
-    print(f"Applying: {sum(1 for a in aspects if a.applying)}")
-    print(f"Separating: {sum(1 for a in aspects if not a.applying)}")
+    advanced_aspects = aspect_service.calculate_aspects(
+        chart.planets,
+        aspect_types=['minor', 'kepler']
+    )
+    display_aspects(advanced_aspects)
+
+    # 5. Calculate ALL 20 Aspect Types with Custom Orbs
+    # This includes Septile, Novile, and Undecile families
+    print("\n" + "=" * 70)
+    print("ALL 20 ASPECTS (Septile/Novile/Undecile families)")
+    print("=" * 70)
+    all_aspects = aspect_service.calculate_aspects(
+        chart.planets,
+        aspect_types=['all'],
+        custom_orbs={"CONJUNCTION": 12.0, "SEXTILE": 8.0}
+    )
+    display_aspects(all_aspects)
+
+def display_aspects(aspects):
+    if not aspects:
+        print("No aspects found.")
+        return
+
+    for aspect in sorted(aspects, key=lambda a: a.orb):
+        applying = "Applying" if aspect.applying else "Separating"
+        print(f"{aspect.p1.name:10} {aspect.type:15} {aspect.p2.name:10} "
+              f"(Orb: {aspect.orb:4.2f}°) [{applying}]")
 
 if __name__ == "__main__":
     main()

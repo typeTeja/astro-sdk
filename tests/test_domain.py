@@ -1,8 +1,12 @@
+from dataclasses import FrozenInstanceError
+
 import pytest
-from astrosdk.core.constants import Planet, ZodiacSign
-from astrosdk.domain.planet import PlanetPosition
-from astrosdk.domain.house import HouseCusp, HouseAxes
-from astrosdk.domain.aspect import Aspect
+
+from app.core.constants import Planet, ZodiacSign
+from app.domain.aspect import Aspect
+from app.domain.house import HouseCusp
+from app.domain.planet import PlanetPosition
+
 
 def test_planet_position_immutability():
     p = PlanetPosition(
@@ -14,21 +18,21 @@ def test_planet_position_immutability():
         speed_lat=0.0,
         speed_dist=0.0
     )
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         p.longitude = 10.0 # Should fail for frozen dataclass
 
 def test_sign_calculation():
     # 0 = Aries, 30 = Taurus, 359 = Pisces
     p1 = PlanetPosition(Planet.SUN, 0.5, 0, 0, 0, 0, 0)
     assert p1.sign == ZodiacSign.ARIES
-    
+
     p2 = PlanetPosition(Planet.MOON, 359.9, 0, 0, 0, 0, 0)
     assert p2.sign == ZodiacSign.PISCES
 
 def test_retrograde():
     p = PlanetPosition(Planet.MERCURY, 100, 0, 0, -0.5, 0, 0)
     assert p.is_retrograde is True
-    
+
     p2 = PlanetPosition(Planet.MERCURY, 100, 0, 0, 0.5, 0, 0)
     assert p2.is_retrograde is False
 

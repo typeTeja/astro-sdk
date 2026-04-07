@@ -23,7 +23,7 @@ What actually happened instead.
 
 ## Minimal Code Example
 ```python
-from astrosdk.core.time import Time
+from app.core.time import Time
 from datetime import datetime, timezone
 
 # Your minimal reproducible code here

@@ -26,8 +26,8 @@ Related to #
 <!-- Describe the tests you ran to verify your changes -->
 - [ ] All existing tests pass (`pytest tests/ -v`)
 - [ ] Added new tests for new functionality
-- [ ] Type checking passes (`mypy src/astrosdk --strict`)
-- [ ] Linting passes (`ruff check src/astrosdk`)
+- [ ] Type checking passes (`mypy src/app --strict`)
+- [ ] Linting passes (`ruff check src/app`)
 - [ ] Tested on multiple platforms (if applicable)
 
 ## Checklist

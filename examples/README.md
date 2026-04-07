@@ -25,38 +25,49 @@ python examples/01_natal_chart.py
 ## Available Examples
 
 ### 01_natal_chart.py
-Calculate a complete natal chart with planetary positions and house cusps.
+Calculate a complete natal chart with planetary positions and house cusps using the high-level `ChartEngine`.
 
 **Features:**
 - Timezone-aware time handling
 - Planetary positions with retrograde detection
-- House cusp calculations
-- Angle calculations (ASC, MC, DESC, IC)
+- Horizontal coordinates (Azimuth/Altitude)
+- House cusp and angle calculations (ASC, MC, DESC, IC)
 
 ### 02_aspects.py
-Calculate aspects between planets and identify applying/separating aspects.
+Calculate aspects between planets and identify applying/separating aspects using the 20-aspect family filtering API.
 
 **Features:**
-- Major aspects (conjunction, opposition, trine, square, sextile)
-- Orb calculations
+- Major, Minor, and Kepler aspects
+- Septile, Novile, and Undecile families
+- Custom orb configuration
 - Applying vs separating detection
-- Aspect summary statistics
+
+### 02_advanced_features.py
+Professional-grade features for research and precise astronomical scanning.
+
+**Features:**
+- Precise Horizon Events (Sunrise, Subset, Solar Noon)
+- Heliacal Phenemona (Risings/Settings)
+- Yearly Planetary Stations (Retrograde/Direct points)
+- Simultaneous Events (Parans)
+- Sign Ingresses (Exact 30° degree boundaries)
 
 ### 03_eclipses.py
-Search for solar and lunar eclipses within a time range.
+Search for solar and lunar eclipses globally using high-precision Swiss Ephemeris models.
 
 **Features:**
 - Solar eclipse search
 - Lunar eclipse search
-- Eclipse type detection (total, partial, annular)
-- Search range validation
+- Magnitude and peak time results
+- Total/Annular/Partial detection
 
 ## More Examples
 
 For more advanced usage, see:
 - [README.md](../README.md) - Quick start guide
-- [tests/](../tests/) - Test files showing various use cases
-- Documentation (coming soon)
+- [tests/](../tests/) - Standard tests showing various use cases
+- [src/app/engine/chart_engine.py](../src/app/engine/chart_engine.py) - For orchestration logic
+- [src/app/services/](../src/app/services/) - For service implementation details
 
 ## Need Help?
 

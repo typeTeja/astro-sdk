@@ -1,48 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "astrosdk"
-version = "1.2.0"
+version = "1.5.2"
 description = "Deterministic Astrology SDK for Research and Data Science"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
     {name = "AstroSDK Contributors"}
 ]
 keywords = ["astrology", "astronomy", "ephemeris", "swiss-ephemeris", "deterministic"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
 dependencies = [
-    "pyswisseph==2.10.3.2",
-    "python-dotenv==1.0.1",
-    "tzdata==2025.1",
+    "pyswisseph>=2.10.3.2",
+    "python-dotenv>=1.2.2",
+    "tzdata>=2026.1",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "matplotlib>=3.8.0",
+    "fastapi>=0.135.0",
+    "uvicorn>=0.44.0",
+    "pydantic>=2.12.5",
+    "sqlmodel>=0.0.38",
 ]
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
+    "pytest>=9.0.0",
+    "pytest-cov>=7.1.0",
 ]
 dev = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
-    "mypy>=1.0",
-    "ruff>=0.1.0",
+    "pytest>=9.0.0",
+    "pytest-cov>=7.1.0",
+    "mypy>=1.20.0",
+    "ruff>=0.15.0",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.urls]
+Homepage = "https://github.com/astrosdk/astro-sdk"
+Documentation = "https://astrosdk.readthedocs.io"
+Repository = "https://github.com/astrosdk/astro-sdk"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/astrosdk"]
+packages = ["app"]
 
 # Pytest Configuration
 [tool.pytest.ini_options]
@@ -60,10 +71,13 @@ markers = [
     "integration: marks tests as integration tests",
     "regression: marks tests as regression tests",
 ]
+filterwarnings = [
+    "ignore:datetime.datetime.utcnow\\(\\) is deprecated:DeprecationWarning",
+]
 
 # Coverage Configuration
 [tool.coverage.run]
-source = ["src/astrosdk"]
+source = ["app"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
@@ -84,7 +98,7 @@ exclude_lines = [
 
 # Mypy Configuration
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -107,10 +121,20 @@ show_error_codes = true
 module = "swisseph.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "pandas.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "matplotlib.*"
+ignore_missing_imports = true
+
 # Ruff Configuration
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -125,10 +149,11 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)
+    "B008",  # Allow function calls in default arguments for FastAPI
 ]
 
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
 
-[tool.ruff.isort]
-known-first-party = ["astrosdk"]
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

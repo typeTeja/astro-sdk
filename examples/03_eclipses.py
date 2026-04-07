@@ -2,63 +2,67 @@
 Eclipse Search Example
 
 This example demonstrates how to find solar and lunar eclipses
-within a specific time range.
+using the EventService and the deterministic Time class.
 """
 
-from datetime import datetime, timezone
-from astrosdk.core.time import Time
-from astrosdk.core.ephemeris import Ephemeris
-from astrosdk.services.event_service import EventService
+from datetime import UTC, datetime
+
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.services.event_service import EventService
+
 
 def main():
-    # Initialize services
+    # 1. Initialize services
     eph = Ephemeris()
     event_service = EventService(eph)
-    
-    # Define search range (2024)
-    start_time = Time(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
-    end_time = Time(datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc))
-    
+
+    # 2. Define search starting point
+    start_time = Time(datetime(2024, 1, 1, tzinfo=UTC))
+
     print("=" * 70)
     print("ECLIPSE SEARCH - 2024")
     print("=" * 70)
-    print(f"Search range: {start_time.dt.date()} to {end_time.dt.date()}")
+    print(f"Starting search from: {start_time.dt.date()}")
     print()
-    
-    # Find next solar eclipse
-    print("SOLAR ECLIPSES")
+
+    # 3. Find Next Solar Eclipse
+    print("SOLAR ECLIPSE")
     print("-" * 70)
     try:
-        solar_eclipse = event_service.find_next_solar_eclipse(start_time)
-        eclipse_time = Time.from_string(
-            f"{int(solar_eclipse.peak_jd)} 00:00:00",
-            "%Y%j %H:%M:%S"
-        )
-        print(f"Next solar eclipse:")
-        print(f"  Julian Day: {solar_eclipse.peak_jd:.6f}")
-        print(f"  Type: {solar_eclipse.type}")
-        print(f"  Total: {'Yes' if solar_eclipse.is_total else 'No'}")
+        solar = event_service.find_next_solar_eclipse(start_time)
+        peak_time = Time.from_julian_day(solar.peak_jd)
+
+        print("Next Solar Eclipse found:")
+        print(f"  Date (UTC):   {peak_time.dt}")
+        print(f"  Julian Day:   {solar.peak_jd:.6f}")
+        print(f"  Type:         {solar.type}")
+        print(f"  Magnitude:    {solar.magnitude:.4f}")
+        print(f"  Total/Annular: {'Yes' if solar.is_total else 'No'}")
     except Exception as e:
         print(f"Error finding solar eclipse: {e}")
-    
+
     print()
-    
-    # Find next lunar eclipse
-    print("LUNAR ECLIPSES")
+
+    # 4. Find Next Lunar Eclipse
+    print("LUNAR ECLIPSE")
     print("-" * 70)
     try:
-        lunar_eclipse = event_service.find_next_lunar_eclipse(start_time)
-        print(f"Next lunar eclipse:")
-        print(f"  Julian Day: {lunar_eclipse.peak_jd:.6f}")
-        print(f"  Type: {lunar_eclipse.type}")
-        print(f"  Total: {'Yes' if lunar_eclipse.is_total else 'No'}")
+        lunar = event_service.find_next_lunar_eclipse(start_time)
+        peak_time = Time.from_julian_day(lunar.peak_jd)
+
+        print("Next Lunar Eclipse found:")
+        print(f"  Date (UTC):   {peak_time.dt}")
+        print(f"  Julian Day:   {lunar.peak_jd:.6f}")
+        print(f"  Type:         {lunar.type}")
+        print(f"  Magnitude:    {lunar.magnitude:.4f}")
+        print(f"  Total:         {'Yes' if lunar.is_total else 'No'}")
     except Exception as e:
         print(f"Error finding lunar eclipse: {e}")
-    
+
     print()
     print("=" * 70)
-    print("Note: Use search range validation to prevent excessive searches")
-    print("Maximum search range: 100 years (~36,525 days)")
+    print("Note: AstroSDK uses Swiss Ephemeris high-precision global search.")
 
 if __name__ == "__main__":
     main()

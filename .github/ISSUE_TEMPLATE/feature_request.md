@@ -18,7 +18,7 @@ How do you envision this feature working?
 ## Example Usage
 ```python
 # Show how you'd like to use this feature
-from astrosdk import ...
+from app import ...
 
 # Example code here
 ```

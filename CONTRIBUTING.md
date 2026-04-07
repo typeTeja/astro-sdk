@@ -36,16 +36,16 @@ Enhancement suggestions are welcome! Please:
 3. **Add tests** for any new functionality
 4. **Update documentation** as needed
 5. **Ensure all tests pass** (`pytest tests/ -v`)
-6. **Run type checking** (`mypy src/astrosdk --strict`)
-7. **Run linting** (`ruff check src/astrosdk`)
+6. **Run type checking** (`mypy src/app --strict`)
+7. **Run linting** (`ruff check src/app`)
 8. **Submit the PR** with a clear description
 
 ## Development Setup
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/astrosdk.git
-cd astrosdk
+git clone https://github.com/yourusername/app.git
+cd app
 
 # Create virtual environment
 python -m venv .venv
@@ -58,7 +58,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 
 # Run with coverage
-pytest tests/ --cov=src/astrosdk --cov-report=term-missing
+pytest tests/ --cov=src/app --cov-report=term-missing
 ```
 
 ## Coding Standards
@@ -83,17 +83,17 @@ AstroSDK prioritizes:
 
 ```bash
 # Check formatting
-ruff format --check src/astrosdk tests/
+ruff format --check src/app tests/
 
 # Auto-format
-ruff format src/astrosdk tests/
+ruff format src/app tests/
 ```
 
 ### Type Checking
 
 ```bash
 # Run mypy in strict mode
-mypy src/astrosdk --strict
+mypy src/app --strict
 ```
 
 All code must pass strict type checking with no errors.

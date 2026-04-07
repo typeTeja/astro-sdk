@@ -1,17 +1,17 @@
-import pytest
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Add src to sys.path
 sys.path.append(os.path.join(os.getcwd(), "src"))
 
-from astrosdk.core.time import Time
-from astrosdk.core.constants import Planet
-from astrosdk.services.planetary_service import PlanetaryService
-from astrosdk.services.fixed_star_service import FixedStarService
-from astrosdk.services.event_service import EventService
-from astrosdk.core.ephemeris import Ephemeris
+from app.core.constants import Planet
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.services.event_service import EventService
+from app.services.fixed_star_service import FixedStarService
+from app.services.planetary_service import PlanetaryService
+
 
 def test_planetary_phenomena_venus():
     """Verify Venus phenomena calculation."""
@@ -19,7 +19,7 @@ def test_planetary_phenomena_venus():
     # 2024-06-04 approx Venus Superior Conjunction
     time = Time.from_string("2024-06-04 00:00:00")
     pheno = service.get_phenomena(Planet.VENUS, time)
-    
+
     assert pheno.planet == Planet.VENUS
     # At superior conjunction, phase fraction is near 1.0
     assert pheno.phase_fraction > 0.99
@@ -30,12 +30,12 @@ def test_fixed_star_sirius():
     service = FixedStarService()
     time = Time.from_string("2024-01-01 00:00:00")
     sirius = service.get_star_position("Sirius", time)
-    
+
     assert sirius.name.startswith("Sirius")
-    # Sirius is approx 20deg Gemini (Tropical) -> approx 14deg Cancer (Sidereal Lahiri?) 
+    # Sirius is approx 20deg Gemini (Tropical) -> approx 14deg Cancer (Sidereal Lahiri?)
     # Actually at J2000 it's 14 deg Cancer Tropical.
     # Lahiri is approx -24 deg. 104 - 24 = 80.
-    assert 75 < sirius.longitude < 85 
+    assert 75 < sirius.longitude < 85
     assert sirius.magnitude < 0 # Sirius is very bright (-1.46)
 
 def test_solar_eclipse_2024():
@@ -43,12 +43,12 @@ def test_solar_eclipse_2024():
     eph = Ephemeris()
     service = EventService(eph)
     start_time = Time.from_string("2024-04-01 00:00:00")
-    
+
     eclipse = service.find_next_solar_eclipse(start_time)
-    
+
     assert eclipse.type == "SOLAR"
     # Check date matches April 8
-    t_peak = datetime.fromtimestamp((eclipse.peak_jd - 2440587.5) * 86400.0, tz=timezone.utc)
+    t_peak = datetime.fromtimestamp((eclipse.peak_jd - 2440587.5) * 86400.0, tz=UTC)
     assert t_peak.month == 4
     assert t_peak.day == 8
     assert eclipse.magnitude >= 1.0 # Total eclipse

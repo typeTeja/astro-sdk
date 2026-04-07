@@ -48,79 +48,102 @@ Cross-platform determinism is maintained across Windows, Linux, and macOS.
 ### Installation
 
 ```bash
-pip install astrosdk
+pip install app
 ```
 
-### Basic Usage
+### Basic Usage (High-Level)
+
+The recommended way to generate a full chart (planets + houses) is using the `ChartEngine`.
 
 ```python
 from datetime import datetime, timezone
-from astrosdk.core.time import Time
-from astrosdk.core.ephemeris import Ephemeris
-from astrosdk.core.constants import Planet, HouseSystem
-from astrosdk.services.natal_service import NatalService
+from app.core.time import Time
+from app.core.constants import HouseSystem, SiderealMode
+from app.engine.chart_engine import ChartEngine
 
-# Initialize ephemeris
-eph = Ephemeris()
+# Initialize engine (automatically sets up Ephemeris)
+engine = ChartEngine()
 
 # Create a deterministic time (timezone-aware required)
 birth_time = Time(datetime(1990, 1, 1, 12, 0, 0, tzinfo=timezone.utc))
 
-# Calculate natal chart
-natal_service = NatalService(eph)
-chart = natal_service.calculate_natal_chart(
+# Create a complete chart for NYC
+chart = engine.create_chart(
     time=birth_time,
-    latitude=40.7128,
-    longitude=-74.0060,
-    house_system=HouseSystem.PLACIDUS
+    lat=40.7128,
+    lon=-74.0060,
+    system=HouseSystem.PLACIDUS,
+    sidereal_mode=SiderealMode.LAHIRI
 )
 
-# Access planetary positions
-for planet_pos in chart.planets:
-    print(f"{planet_pos.planet.name}: {planet_pos.longitude:.4f}° "
-          f"({planet_pos.sign.name} {planet_pos.sign_degree:.2f}°)")
-    if planet_pos.is_retrograde:
-        print(f"  ⟲ Retrograde")
+# Access planetary positions and horizontal data
+for p in chart.planets:
+    print(f"{p.planet.name:10}: {p.longitude:7.2f}° | Az: {p.azimuth:7.2f}° | Alt: {p.altitude:7.2f}°")
+    if p.is_retrograde:
+        print("  ⟲ Retrograde")
+
+# Access house cusps
+for cusp in chart.houses.cusps:
+    print(f"House {cusp.number}: {cusp.longitude:.2f}°")
+```
+
+### Granular Usage (Service Layer)
+
+For specialized calculations without a full chart object, use individual services.
+
+```python
+from app.core.ephemeris import Ephemeris
+from app.services.natal_service import NatalService
+
+eph = Ephemeris()
+natal_service = NatalService(eph)
+
+# Geocentric / Sidereal positions
+positions = natal_service.calculate_positions(birth_time, sidereal_mode=SiderealMode.LAHIRI)
+
+# Heliocentric / Tropical positions
+heliocentric = natal_service.calculate_positions(
+    birth_time, 
+    sidereal_mode=None, 
+    heliocentric=True
+)
 ```
 
 ### Calculate Aspects
 
+AstroSDK supports **20 aspect types** and configurable orbs.
+
 ```python
-from astrosdk.services.aspect_service import AspectService
+from app.services.aspect_service import AspectService
 
 aspect_service = AspectService()
 
-# Major aspects only (default)
+# 1. Major Aspects (default)
 aspects = aspect_service.calculate_aspects(chart.planets)
 
-# All aspect types (major, minor, Kepler, septile, novile, undecile)
+# 2. All 20 types (Major, Minor, Kepler, Septile, Novile, Undecile)
 all_aspects = aspect_service.calculate_aspects(chart.planets, aspect_types=['all'])
 
-# Specific aspect types
-combined = aspect_service.calculate_aspects(chart.planets, aspect_types=['major', 'minor'])
-
-# Custom orbs
-custom_aspects = aspect_service.calculate_aspects(
+# 3. Custom Orbs
+custom = aspect_service.calculate_aspects(
     chart.planets,
     aspect_types=['major'],
-    custom_orbs={"CONJUNCTION": 15.0, "TRINE": 12.0}
+    custom_orbs={"CONJUNCTION": 12.0, "OPPOSITION": 10.0}
 )
 
 for aspect in aspects:
-    print(f"{aspect.p1.name} {aspect.type} {aspect.p2.name} "
-          f"(orb: {aspect.orb:.2f}°, {'applying' if aspect.applying else 'separating'})")
+    print(f"{aspect.p1.name} {aspect.type} {aspect.p2.name} (Orb: {aspect.orb:.2f}°)")
 ```
 
 ### Find Eclipses
 
 ```python
-from astrosdk.services.event_service import EventService
+from app.services.event_service import EventService
 
 event_service = EventService(eph)
 next_eclipse = event_service.find_next_solar_eclipse(birth_time)
 
-print(f"Next solar eclipse: JD {next_eclipse.peak_jd}")
-print(f"Type: {next_eclipse.type}")
+print(f"Next Solar Eclipse: JD {next_eclipse.peak_jd:.4f} (Magnitude: {next_eclipse.magnitude})")
 ```
 
 ---
@@ -128,19 +151,19 @@ print(f"Type: {next_eclipse.type}")
 ## 📐 Architecture
 
 ```
-astrosdk/
-├── core/           # Swiss Ephemeris wrapper, time handling, constants
-├── domain/         # Immutable data models (Planet, Chart, Aspect, etc.)
-├── services/       # Business logic (natal, transit, aspect calculations)
-└── engine/         # High-level orchestration and metadata
+app/
+├── core/           # Swiss Ephemeris wrapper, thread safety, context isolation
+├── domain/         # Immutable models (Planet, Chart, Aspect, House)
+├── services/       # Granular business logic (natal, transit, aspect, horizon)
+└── engine/         # High-level orchestration (ChartEngine, metadata)
 ```
 
 ### Design Philosophy
 
-- **Core Layer**: Thread-safe Swiss Ephemeris access, deterministic time conversion
-- **Domain Layer**: Immutable frozen dataclasses, no business logic
-- **Service Layer**: Pure functions, no side effects, no I/O
-- **Engine Layer**: Multi-service coordination, batch processing
+- **Core Layer**: Thread-safe global state management using `RLock`.
+- **Domain Layer**: Frozen dataclasses for absolute immutability.
+- **Service Layer**: Pure services for scanning events and calculating positions.
+- **Engine Layer**: Simplified Facade for full-chart orchestration.
 
 ---
 
@@ -175,7 +198,7 @@ AstroSDK supports **47 ayanamsa systems** from Swiss Ephemeris:
 - And 42 more including Vedic, Babylonian, Galactic, and reference systems
 
 ```python
-from astrosdk.core.constants import SiderealMode
+from app.core.constants import SiderealMode
 
 # Lahiri (default)
 eph.set_sidereal_mode(SiderealMode.LAHIRI)
@@ -220,7 +243,7 @@ pytest tests/ -v
 ### Determinism Verification
 
 ```python
-from astrosdk.engine.metadata import get_engine_metadata
+from app.engine.metadata import get_engine_metadata
 
 metadata = get_engine_metadata()
 print(metadata)
@@ -369,8 +392,8 @@ All Swiss Ephemeris calls are protected by a global `RLock`. AstroSDK is safe fo
 For temporary state changes:
 
 ```python
-from astrosdk.core.ephemeris_context import EphemerisContext
-from astrosdk.core.constants import SiderealMode
+from app.core.ephemeris_context import EphemerisContext
+from app.core.constants import SiderealMode
 
 with EphemerisContext(sid_mode=SiderealMode.FAGAN_BRADLEY):
     # Calculations here use Fagan-Bradley
@@ -409,7 +432,7 @@ pip install -e ".[test]"
 pytest tests/ -v
 
 # Run with coverage
-pytest tests/ --cov=src/astrosdk --cov-report=term-missing
+pytest tests/ --cov=src/app --cov-report=term-missing
 ```
 
 ---

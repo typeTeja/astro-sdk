@@ -112,5 +112,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - python-dotenv 1.0.1
 - tzdata 2025.1
 
-[Unreleased]: https://github.com/yourusername/astrosdk/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/yourusername/astrosdk/releases/tag/v0.1.0
+[Unreleased]: https://github.com/yourusername/app/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/yourusername/app/releases/tag/v0.1.0

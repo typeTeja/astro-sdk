@@ -1,9 +1,11 @@
 import pytest
-from astrosdk.core.time import Time
-from astrosdk.core.ephemeris import Ephemeris
-from astrosdk.services.event_service import EventService
-from astrosdk.core.constants import Planet, HouseSystem, SiderealMode
-from astrosdk.services.natal_service import NatalService
+
+from app.core.constants import HouseSystem, Planet, SiderealMode
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.services.event_service import EventService
+from app.services.natal_service import NatalService
+
 
 @pytest.fixture
 def ephemeris():
@@ -47,7 +49,7 @@ def test_high_latitude_house_cusps(natal_service):
     # Murmansk, Russia (68.97° N)
     t = Time.from_string("2024-01-01 12:00:00")
     lat, lon = 68.97, 33.08
-    
+
     # Systems that often fail at high latitudes like Placidus
     # Swiss Ephemeris falls back to Porphyry or handles it with a flag if possible.
     houses = natal_service.calculate_houses(t, lat, lon, system=HouseSystem.PLACIDUS)
