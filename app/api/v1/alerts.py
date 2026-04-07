@@ -84,7 +84,7 @@ async def get_rules(session: Annotated[Session, Depends(get_session)]) -> AlertR
 @router.post("/scan", response_model=AlertScanResponse, summary="Run manual scan for triggers")
 async def scan_alerts(
     session: Annotated[Session, Depends(get_session)],
-    window_days: float = Query(1.0, ge=0.1, le=30.0),
+    window_days: float = Query(1.0, ge=0.1, le=365.0),
 ) -> AlertScanResponse:
     """
     Manually trigger a scan of all active rules within a given look-back window.

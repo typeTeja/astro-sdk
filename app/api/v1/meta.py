@@ -16,8 +16,6 @@ def get_meta(
     return AstroMeta(
         zodiac="sidereal" if is_sidereal else "tropical",
         ayanamsa=ayan_name,
-        house_system=house_system.name
-        if isinstance(house_system, HouseSystem)
-        else str(house_system),
+        house_system=getattr(house_system, "name", str(house_system)),
         coordinate_system="heliocentric" if heliocentric else "geocentric",
     )

@@ -2,7 +2,7 @@ from typing import Any
 
 import swisseph as swe
 
-from ..core.constants import MAX_SEARCH_DAYS, Planet, SiderealMode
+from ..core.constants import MAX_SEARCH_DAYS, Planet, SiderealMode, ZodiacSign
 from ..core.ephemeris import Ephemeris
 from ..core.errors import SearchRangeTooLargeError
 from ..core.time import Time
@@ -62,8 +62,8 @@ class EventService:
                         secondary_body=Planet.SUN,  # Placeholder for "Space"
                         julian_day=exact_jd,
                         data={
-                            "sign_from": str(last_sign),
-                            "sign_to": str(current_sign),
+                            "sign_from": ZodiacSign(last_sign).name,
+                            "sign_to": ZodiacSign(current_sign).name,
                         },
                     )
                 )

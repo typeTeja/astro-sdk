@@ -4,6 +4,7 @@ from typing import Self
 from zoneinfo import ZoneInfo
 
 import swisseph as swe
+
 from .errors import InvalidTimeError
 
 
@@ -64,8 +65,13 @@ class Time:
     @property
     def delta_t(self) -> float:
         """Calculate Delta-T (ET - UT) in days for this Julian Day."""
-        # Swisseph returns delta_t in seconds
-        return float(swe.deltat(self.julian_day) / 86400.0)
+        # Swisseph returns delta_t in days
+        return float(swe.deltat(self.julian_day))
+
+    @property
+    def sidereal_time(self) -> float:
+        """Calculate Greenwich Mean Sidereal Time in hours."""
+        return float(swe.sidtime(self.julian_day))
 
     def __str__(self) -> str:
         return self.dt.isoformat()
