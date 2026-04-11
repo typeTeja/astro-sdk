@@ -6,13 +6,13 @@ from ...core.constants import Planet, SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.transits import TransitAspectSchema, TransitScanData, TransitScanResponse
-from ...services.aspect_service import AspectService
 from ...engine.chart_engine import ChartEngine
+from ...services.western import WesternAspectService
+from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-aspect_service = AspectService()
 chart_engine = ChartEngine()
 
 
@@ -52,9 +52,26 @@ async def get_aspects(
     # 2. Filter requested planets
     target_pos = [p for p in chart.planets if p.planet in planets]
 
+    context = build_western_chart_context(
+        sidereal_mode=sidereal_mode,
+        is_sidereal=True,
+        heliocentric=False,
+        capability="western.aspect",
+    )
+    aspect_service = WesternAspectService(context)
+
     # 3. Scan
     matches = aspect_service.calculate_aspects(
         target_pos, aspect_types=aspect_types, global_orb=global_orb
+    )
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "time": t.dt.isoformat(),
+            "planets": [planet.name for planet in planets],
+            "aspect_types": aspect_types or [],
+            "global_orb": global_orb,
+        },
     )
 
     data = [
@@ -70,6 +87,12 @@ async def get_aspects(
     ]
 
     return TransitScanResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode),
+        meta=get_meta(
+            is_sidereal=True,
+            sidereal_mode=sidereal_mode,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
         data=TransitScanData(time=t.dt, aspects=data),
     )

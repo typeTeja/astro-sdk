@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Query
 
+from ...api.common import build_western_chart_context, calculation_metadata
 from ...core.constants import HouseSystem, SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
@@ -15,13 +16,12 @@ from ...schemas.charts import (
     TransitChartData,
     TransitChartResponse,
 )
-from ...engine.chart_engine import ChartEngine
 from ...services.panchanga_service import PanchangaService
+from ...services.western import WesternChartService
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-chart_engine = ChartEngine()
 pan_service = PanchangaService(ephemeris)
 
 
@@ -48,14 +48,29 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
         if "heliocentric" in request.settings:
             heliocentric = bool(request.settings["heliocentric"])
 
-    chart = chart_engine.create_chart(
-        t,
-        request.location.latitude,
-        request.location.longitude,
-        system=house_sys,
+    context = build_western_chart_context(
+        house_system=house_sys,
         sidereal_mode=sidereal_mode,
         is_sidereal=is_sidereal,
         heliocentric=heliocentric,
+        latitude=request.location.latitude,
+        longitude=request.location.longitude,
+        altitude=request.location.altitude,
+    )
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
+    chart = chart_service.create_chart(
+        t,
+        request.location.latitude,
+        request.location.longitude,
+    )
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "time": t.dt.isoformat(),
+            "latitude": request.location.latitude,
+            "longitude": request.location.longitude,
+            "altitude": request.location.altitude,
+        },
     )
 
     planets = [
@@ -85,7 +100,16 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
     data = NatalChartData(planets=planets, houses=cusps, ascendant=asc, mc=mc)
 
     return NatalChartResponse(
-        meta=get_meta(is_sidereal=is_sidereal, sidereal_mode=sidereal_mode), data=data
+        meta=get_meta(
+            is_sidereal=is_sidereal,
+            sidereal_mode=sidereal_mode,
+            heliocentric=heliocentric,
+            house_system=house_sys,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
+        data=data,
     )
 
 
@@ -103,14 +127,27 @@ async def get_transit_chart(
     """
     t = Time(time)
 
-    chart = chart_engine.create_chart(
-        t,
-        latitude,
-        longitude,
-        system=HouseSystem.PLACIDUS,
+    context = build_western_chart_context(
+        house_system=HouseSystem.PLACIDUS,
         sidereal_mode=sidereal_mode,
         is_sidereal=sidereal,
         heliocentric=heliocentric,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
+    chart = chart_service.create_chart(
+        t,
+        latitude,
+        longitude,
+    )
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "time": t.dt.isoformat(),
+            "latitude": latitude,
+            "longitude": longitude,
+        },
     )
 
     planets = [
@@ -128,7 +165,15 @@ async def get_transit_chart(
     ]
 
     return TransitChartResponse(
-        meta=get_meta(is_sidereal=sidereal, sidereal_mode=sidereal_mode),
+        meta=get_meta(
+            is_sidereal=sidereal,
+            sidereal_mode=sidereal_mode,
+            heliocentric=heliocentric,
+            house_system=HouseSystem.PLACIDUS,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
         data=TransitChartData(planets=planets),
     )
 

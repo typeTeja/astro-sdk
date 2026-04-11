@@ -5,15 +5,16 @@ from fastapi import APIRouter, Query
 from ...core.constants import SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
+from ...contexts import FeatureMaturity
 from ...schemas.astro import PlanetPositionData
 from ...schemas.charts import NatalChartRequest
 from ...schemas.transits import SecondaryProgressionData, SecondaryProgressionResponse
-from ...services.progression_service import ProgressionService
+from ...services.western import WesternProgressionService
+from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-progression_service = ProgressionService(ephemeris)
 
 
 @router.get(
@@ -25,16 +26,29 @@ async def get_secondary_progression(
     birth_time: datetime = Query(...),
     target_date: datetime = Query(default_factory=lambda: datetime.now(UTC)),
     sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
+    is_sidereal: bool = Query(True),
 ) -> SecondaryProgressionResponse:
     """
     Calculate Secondary Progressions (Day-for-a-Year) for a given life moment.
     """
     t_birth = Time(birth_time)
     t_target = Time(target_date)
+    context = build_western_chart_context(
+        sidereal_mode=sidereal_mode,
+        is_sidereal=is_sidereal,
+        capability="western.progression",
+        maturity=FeatureMaturity.BETA,
+    )
+    progression_service = WesternProgressionService(context, ephemeris=ephemeris)
 
     # 1. Calculate progressions → returns ProgressedChart domain object
-    prog = progression_service.calculate_secondary_progression(
-        t_birth, t_target, sidereal_mode=sidereal_mode
+    prog = progression_service.calculate_secondary_progression(t_birth, t_target)
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "birth_time": t_birth.dt.isoformat(),
+            "target_date": t_target.dt.isoformat(),
+        },
     )
 
     # 2. Map domain dict records → PlanetPositionData schemas (schema layer)
@@ -58,7 +72,14 @@ async def get_secondary_progression(
     )
 
     return SecondaryProgressionResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=data
+        meta=get_meta(
+            is_sidereal=is_sidereal,
+            sidereal_mode=sidereal_mode if is_sidereal else None,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
+        data=data,
     )
 
 from ...schemas.transits import TransitScanResponse, TransitScanData, TransitAspectSchema

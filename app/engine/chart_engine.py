@@ -1,8 +1,9 @@
+from ..contexts import build_western_chart_context
 from ..core.constants import HouseSystem, SiderealMode
 from ..core.ephemeris import Ephemeris
 from ..core.time import Time
 from ..domain.chart import Chart
-from ..services.natal_service import NatalService
+from ..services.western import WesternChartService
 
 
 class ChartEngine:
@@ -13,7 +14,6 @@ class ChartEngine:
 
     def __init__(self) -> None:
         self._ephemeris = Ephemeris()
-        self._natal_service = NatalService(self._ephemeris)
 
     def create_chart(
         self,
@@ -28,32 +28,13 @@ class ChartEngine:
         """
         Generate a complete Astrological Chart.
         """
-        # Pass None to signal Tropical Mode
-        mode_for_calc = sidereal_mode if is_sidereal else None
-        
-        planets = self._natal_service.calculate_positions(
-            time=time, 
-            sidereal_mode=mode_for_calc, 
+        context = build_western_chart_context(
+            house_system=system,
+            sidereal_mode=sidereal_mode,
             is_sidereal=is_sidereal,
-            heliocentric=heliocentric
+            heliocentric=heliocentric,
+            latitude=lat,
+            longitude=lon,
         )
-        houses = self._natal_service.calculate_houses(
-            time=time, 
-            lat=lat, 
-            lon=lon, 
-            system=system, 
-            sidereal_mode=sidereal_mode, 
-            is_sidereal=is_sidereal
-        )
-
-        return Chart(
-            metadata={
-                "sidereal_mode": sidereal_mode.name,
-                "house_system": system.name,
-                "lat": str(lat),
-                "lon": str(lon),
-            },
-            time=time,
-            planets=planets,
-            houses=houses,
-        )
+        chart_service = WesternChartService(context, ephemeris=self._ephemeris)
+        return chart_service.create_chart(time, lat, lon)

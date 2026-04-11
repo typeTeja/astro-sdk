@@ -2,6 +2,7 @@ from typing import Any
 
 from ..core.constants import MAX_SEARCH_DAYS, Planet, SiderealMode, ZodiacSign
 from ..core.ephemeris import Ephemeris
+from ..core.ephemeris_context import EphemerisContext
 from ..core.errors import SearchRangeTooLargeError
 from ..core.time import Time
 from ..domain.event import AstroEvent, EclipseEvent
@@ -29,47 +30,47 @@ class EventService:
         Scan for sign ingresses within a time range.
         Uses a step-discovery followed by bisection refinement.
         """
-        self.eph.set_sidereal_mode(sidereal_mode)
-        events: list[AstroEvent] = []
-        current_jd = start_time.julian_day
-        end_jd = end_time.julian_day
+        with EphemerisContext(sid_mode=sidereal_mode):
+            events: list[AstroEvent] = []
+            current_jd = start_time.julian_day
+            end_jd = end_time.julian_day
 
-        if (end_jd - current_jd) > MAX_SEARCH_DAYS:
-            raise SearchRangeTooLargeError(
-                f"Search range exceeds maximum allowed limit of {MAX_SEARCH_DAYS} days."
-            )
-
-        # Get initial sign
-        pos = self.eph.calculate_planet(current_jd, planet, sidereal=True)
-        last_sign = int(pos["longitude"] / 30)
-
-        while current_jd < end_jd:
-            next_jd = min(current_jd + step_days, end_jd)
-            pos = self.eph.calculate_planet(next_jd, planet, sidereal=True)
-            current_sign = int(pos["longitude"] / 30)
-
-            if current_sign != last_sign:
-                # Ingress found between current_jd and next_jd
-                exact_jd = self._refine_ingress(
-                    planet, current_jd, next_jd, last_sign, current_sign
+            if (end_jd - current_jd) > MAX_SEARCH_DAYS:
+                raise SearchRangeTooLargeError(
+                    f"Search range exceeds maximum allowed limit of {MAX_SEARCH_DAYS} days."
                 )
-                events.append(
-                    AstroEvent(
-                        type="INGRESS",
-                        primary_body=planet,
-                        secondary_body=None,
-                        julian_day=exact_jd,
-                        data={
-                            "sign_from": ZodiacSign(last_sign).name,
-                            "sign_to": ZodiacSign(current_sign).name,
-                        },
+
+            # Get initial sign
+            pos = self.eph.calculate_planet(current_jd, planet, sidereal=True)
+            last_sign = int(pos["longitude"] / 30)
+
+            while current_jd < end_jd:
+                next_jd = min(current_jd + step_days, end_jd)
+                pos = self.eph.calculate_planet(next_jd, planet, sidereal=True)
+                current_sign = int(pos["longitude"] / 30)
+
+                if current_sign != last_sign:
+                    # Ingress found between current_jd and next_jd
+                    exact_jd = self._refine_ingress(
+                        planet, current_jd, next_jd, last_sign, current_sign
                     )
-                )
+                    events.append(
+                        AstroEvent(
+                            type="INGRESS",
+                            primary_body=planet,
+                            secondary_body=None,
+                            julian_day=exact_jd,
+                            data={
+                                "sign_from": ZodiacSign(last_sign).name,
+                                "sign_to": ZodiacSign(current_sign).name,
+                            },
+                        )
+                    )
 
-            last_sign = current_sign
-            current_jd = next_jd
+                last_sign = current_sign
+                current_jd = next_jd
 
-        return events
+            return events
 
     def scan_stations(
         self,
@@ -82,44 +83,44 @@ class EventService:
         """
         Scan for retrograde/direct stations (speed crossing zero).
         """
-        self.eph.set_sidereal_mode(sidereal_mode)
-        events: list[AstroEvent] = []
-        current_jd = start_time.julian_day
-        end_jd = end_time.julian_day
+        with EphemerisContext(sid_mode=sidereal_mode):
+            events: list[AstroEvent] = []
+            current_jd = start_time.julian_day
+            end_jd = end_time.julian_day
 
-        if (end_jd - current_jd) > MAX_SEARCH_DAYS:
-            raise SearchRangeTooLargeError(
-                f"Search range exceeds maximum allowed limit of {MAX_SEARCH_DAYS} days."
-            )
-
-        pos = self.eph.calculate_planet(current_jd, planet, sidereal=True)
-        last_speed = pos["speed_long"]
-
-        while current_jd < end_jd:
-            next_jd = min(current_jd + step_days, end_jd)
-            pos = self.eph.calculate_planet(next_jd, planet, sidereal=True)
-            current_speed = pos["speed_long"]
-
-            if (last_speed > 0 and current_speed < 0) or (last_speed < 0 and current_speed > 0):
-                # Station found
-                exact_jd = self._refine_station(planet, current_jd, next_jd)
-                events.append(
-                    AstroEvent(
-                        type="STATION",
-                        primary_body=planet,
-                        secondary_body=None,
-                        julian_day=exact_jd,
-                        data={
-                            "speed_before": f"{last_speed:.6f}",
-                            "speed_after": f"{current_speed:.6f}",
-                        },
-                    )
+            if (end_jd - current_jd) > MAX_SEARCH_DAYS:
+                raise SearchRangeTooLargeError(
+                    f"Search range exceeds maximum allowed limit of {MAX_SEARCH_DAYS} days."
                 )
 
-            last_speed = current_speed
-            current_jd = next_jd
+            pos = self.eph.calculate_planet(current_jd, planet, sidereal=True)
+            last_speed = pos["speed_long"]
 
-        return events
+            while current_jd < end_jd:
+                next_jd = min(current_jd + step_days, end_jd)
+                pos = self.eph.calculate_planet(next_jd, planet, sidereal=True)
+                current_speed = pos["speed_long"]
+
+                if (last_speed > 0 and current_speed < 0) or (last_speed < 0 and current_speed > 0):
+                    # Station found
+                    exact_jd = self._refine_station(planet, current_jd, next_jd)
+                    events.append(
+                        AstroEvent(
+                            type="STATION",
+                            primary_body=planet,
+                            secondary_body=None,
+                            julian_day=exact_jd,
+                            data={
+                                "speed_before": f"{last_speed:.6f}",
+                                "speed_after": f"{current_speed:.6f}",
+                            },
+                        )
+                    )
+
+                last_speed = current_speed
+                current_jd = next_jd
+
+            return events
 
     def _refine_ingress(
         self,
@@ -223,12 +224,15 @@ class EventService:
         Calculate rise and set times for a planet at a specific location.
         Routes through the Ephemeris wrapper to maintain thread safety.
         """
-        self.eph.set_topocentric(lat, lon, alt)
+        with EphemerisContext(topo=(lon, lat, alt)):
+            rise_jd = self.eph.calculate_rise_set(
+                time.julian_day, planet, lat, lon, alt, is_rise=True
+            )
+            set_jd = self.eph.calculate_rise_set(
+                time.julian_day, planet, lat, lon, alt, is_rise=False
+            )
 
-        rise_jd = self.eph.calculate_rise_set(time.julian_day, planet, lat, lon, alt, is_rise=True)
-        set_jd = self.eph.calculate_rise_set(time.julian_day, planet, lat, lon, alt, is_rise=False)
-
-        return {
-            "rise": rise_jd,
-            "set": set_jd,
-        }
+            return {
+                "rise": rise_jd,
+                "set": set_jd,
+            }

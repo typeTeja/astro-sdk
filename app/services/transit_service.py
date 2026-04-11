@@ -22,17 +22,24 @@ class TransitService:
         self,
         natal_positions: list["PlanetPositionInputData"],  # type: ignore[name-defined]
         transit_time: Time,
-        sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
+        sidereal_mode: SiderealMode | None = SiderealMode.LAHIRI,
         aspect_types: list[str] | None = None,
         global_orb: float | None = None,
+        heliocentric: bool = False,
+        is_sidereal: bool = True,
     ) -> list[TransitAspect]:
         """
         Compare current planetary positions (transits) against stored natal positions.
         Returns domain TransitAspect objects.
         """
+        effective_sidereal = is_sidereal and sidereal_mode is not None
+
         # 1. Calculate current transit positions
         transit_objs: list[PlanetPosition] = self.natal_service.calculate_positions(
-            transit_time, sidereal_mode
+            transit_time,
+            sidereal_mode=sidereal_mode,
+            heliocentric=heliocentric,
+            is_sidereal=effective_sidereal,
         )
 
         # 2. Build orb table
@@ -40,6 +47,7 @@ class TransitService:
         if global_orb is not None:
             for k in orbs:
                 orbs[k] = global_orb
+        allowed_aspects = {name.upper() for name in aspect_types} if aspect_types else None
 
         found_aspects: list[TransitAspect] = []
 
@@ -54,6 +62,8 @@ class TransitService:
                     diff = 360 - diff
 
                 for angle, aspect_name in self.aspect_service.MAJOR_ASPECTS.items():
+                    if allowed_aspects is not None and aspect_name.upper() not in allowed_aspects:
+                        continue
                     orb = abs(diff - angle)
                     limit = orbs.get(aspect_name, 2.0)
 

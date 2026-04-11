@@ -26,8 +26,10 @@ class NatalService:
         """
         Calculate all planetary positions for a given time.
         """
-        # Ensure mode is set if sidereal requested
-        if is_sidereal and sidereal_mode is not None:
+        effective_sidereal = is_sidereal and sidereal_mode is not None
+
+        # Ensure mode is set only when we are explicitly running sidereal calculations.
+        if effective_sidereal:
             self.eph.set_sidereal_mode(sidereal_mode)
 
         jd = time.julian_day
@@ -38,7 +40,7 @@ class NatalService:
                 continue
 
             data = self.eph.calculate_planet(
-                jd, planet, sidereal=is_sidereal, heliocentric=heliocentric
+                jd, planet, sidereal=effective_sidereal, heliocentric=heliocentric
             )
 
             # Calculate horizontal if geopos provided
@@ -103,17 +105,25 @@ class NatalService:
         """
         Calculate house cusps.
         """
-        if is_sidereal:
+        effective_sidereal = is_sidereal and sidereal_mode is not None
+
+        if effective_sidereal:
             self.eph.set_sidereal_mode(sidereal_mode)
         jd = time.julian_day
 
         try:
-            data = self.eph.calculate_houses(jd, lat, lon, system, sidereal=is_sidereal)
+            data = self.eph.calculate_houses(jd, lat, lon, system, sidereal=effective_sidereal)
         except Exception:
             # Fallback for high latitudes where Placidus/Koch fail
             if system in [HouseSystem.PLACIDUS, HouseSystem.KOCH]:
                 # Fallback to Porphyry (System 'O') which is robust
-                data = self.eph.calculate_houses(jd, lat, lon, HouseSystem.PORPHYRY, sidereal=True)
+                data = self.eph.calculate_houses(
+                    jd,
+                    lat,
+                    lon,
+                    HouseSystem.PORPHYRY,
+                    sidereal=effective_sidereal,
+                )
             else:
                 raise
 

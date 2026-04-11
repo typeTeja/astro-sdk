@@ -10,6 +10,8 @@ from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.crossings import AspectCrossingResponse, AspectCrossingSchema, PlanetaryReturnResponse, PlanetaryReturnSchema
 from ...services.crossing_service import CrossingService
+from ...services.western import WesternReturnService
+from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
@@ -34,7 +36,27 @@ async def get_planetary_return(
     Useful for solar returns, lunar returns, and planetary returns.
     """
     t_start = Time(start_time)
-    result = crossing_service.find_planetary_return(planet, target_longitude, t_start, max_days)
+    context = build_western_chart_context(
+        sidereal_mode=sidereal_mode,
+        is_sidereal=True,
+        capability="western.return",
+    )
+    return_service = WesternReturnService(context, ephemeris=ephemeris)
+    result = return_service.find_planetary_return(
+        planet,
+        target_longitude,
+        t_start,
+        max_days=max_days,
+    )
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "planet": planet.name,
+            "target_longitude": target_longitude,
+            "start_time": t_start.dt.isoformat(),
+            "max_days": max_days,
+        },
+    )
 
     data = PlanetaryReturnSchema(
         planet=planet.name,
@@ -42,7 +64,14 @@ async def get_planetary_return(
         longitude=target_longitude,
     )
     return PlanetaryReturnResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=[data]
+        meta=get_meta(
+            is_sidereal=True,
+            sidereal_mode=sidereal_mode,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
+        data=[data],
     )
 
 

@@ -5,6 +5,7 @@ from typing import Any
 
 from ..core.constants import Planet, SiderealMode
 from ..core.ephemeris import Ephemeris
+from ..core.ephemeris_context import EphemerisContext
 from ..core.errors import EphemerisError
 from ..core.time import Time
 
@@ -27,7 +28,7 @@ class CrossingService:
         planet: Planet,
         target_longitude: float,
         start_time: Time,
-        sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
+        sidereal_mode: SiderealMode | None = SiderealMode.LAHIRI,
         heliocentric: bool = False,
         max_search_years: float = 2.0,
         tolerance_seconds: float = 1.0,
@@ -35,61 +36,65 @@ class CrossingService:
         """
         Find the exact time a planet reaches a specific longitude.
         """
-        self.eph.set_sidereal_mode(sidereal_mode)
+        sidereal = sidereal_mode is not None
+        context_kwargs = {"sid_mode": sidereal_mode} if sidereal else {}
 
-        jd_start = start_time.julian_day
-        limit_days = max_search_years * 365.25
+        with EphemerisContext(**context_kwargs):
+            jd_start = start_time.julian_day
+            limit_days = max_search_years * 365.25
 
-        step_days = 0.5
-        if planet == Planet.MOON:
-            step_days = 0.1
+            step_days = 0.5
+            if planet == Planet.MOON:
+                step_days = 0.1
 
-        jd_low = jd_start
-        jd_high = jd_start + limit_days
+            jd_low = jd_start
+            jd_high = jd_start + limit_days
 
-        last_diff: float | None = None
-        found_window = False
+            last_diff: float | None = None
+            found_window = False
 
-        def get_diff(jd: float) -> float:
-            pos = self.eph.calculate_planet(jd, planet, sidereal=True, heliocentric=heliocentric)
-            lon = pos["longitude"]
-            diff = (lon - target_longitude + 180) % 360 - 180
-            return diff
+            def get_diff(jd: float) -> float:
+                pos = self.eph.calculate_planet(
+                    jd, planet, sidereal=sidereal, heliocentric=heliocentric
+                )
+                lon = pos["longitude"]
+                diff = (lon - target_longitude + 180) % 360 - 180
+                return diff
 
-        curr_jd = jd_start
-        while curr_jd < jd_high:
-            diff = get_diff(curr_jd)
-            if (
-                last_diff is not None
-                and abs(diff) < 90
-                and abs(last_diff) < 90
-                and ((last_diff < 0 and diff >= 0) or (last_diff > 0 and diff <= 0))
-            ):
-                jd_low = curr_jd - step_days
-                jd_high = curr_jd
-                found_window = True
-                break
-            last_diff = diff
-            curr_jd += step_days
+            curr_jd = jd_start
+            while curr_jd < jd_high:
+                diff = get_diff(curr_jd)
+                if (
+                    last_diff is not None
+                    and abs(diff) < 90
+                    and abs(last_diff) < 90
+                    and ((last_diff < 0 and diff >= 0) or (last_diff > 0 and diff <= 0))
+                ):
+                    jd_low = curr_jd - step_days
+                    jd_high = curr_jd
+                    found_window = True
+                    break
+                last_diff = diff
+                curr_jd += step_days
 
-        if not found_window:
-            raise EphemerisError(
-                f"Could not find return for {planet.name} within {max_search_years} years."
-            )
+            if not found_window:
+                raise EphemerisError(
+                    f"Could not find return for {planet.name} within {max_search_years} years."
+                )
 
-        tol_jd = tolerance_seconds / 86400.0
+            tol_jd = tolerance_seconds / 86400.0
 
-        while (jd_high - jd_low) > tol_jd:
-            mid = (jd_low + jd_high) / 2.0
-            diff = get_diff(mid)
-            low_diff = get_diff(jd_low)
-            if (low_diff < 0 and diff > 0) or (low_diff > 0 and diff < 0):
-                jd_high = mid
-            else:
-                jd_low = mid
+            while (jd_high - jd_low) > tol_jd:
+                mid = (jd_low + jd_high) / 2.0
+                diff = get_diff(mid)
+                low_diff = get_diff(jd_low)
+                if (low_diff < 0 and diff > 0) or (low_diff > 0 and diff < 0):
+                    jd_high = mid
+                else:
+                    jd_low = mid
 
-        final_jd = (jd_low + jd_high) / 2.0
-        return Time.from_julian_day(final_jd)
+            final_jd = (jd_low + jd_high) / 2.0
+            return Time.from_julian_day(final_jd)
 
     def find_solar_return(
         self,
@@ -134,33 +139,33 @@ class CrossingService:
         """
         Find the next sign ingress (0, 30, 60... degree alignment).
         """
-        self.eph.set_sidereal_mode(sidereal_mode)
-        pos = self.eph.calculate_planet(
-            start_time.julian_day, planet, sidereal=True, heliocentric=heliocentric
-        )
-        curr_lon = pos["longitude"]
-        speed = pos["speed_long"]
+        with EphemerisContext(sid_mode=sidereal_mode):
+            pos = self.eph.calculate_planet(
+                start_time.julian_day, planet, sidereal=True, heliocentric=heliocentric
+            )
+            curr_lon = pos["longitude"]
+            speed = pos["speed_long"]
 
-        if speed >= 0:
-            target_lon = (math.floor(curr_lon / 30.0) + 1) * 30.0
-            if target_lon >= 360:
-                target_lon = 0.0
-        else:
-            target_lon = math.floor(curr_lon / 30.0) * 30.0
-            if target_lon < 0:
-                target_lon = 330.0
+            if speed >= 0:
+                target_lon = (math.floor(curr_lon / 30.0) + 1) * 30.0
+                if target_lon >= 360:
+                    target_lon = 0.0
+            else:
+                target_lon = math.floor(curr_lon / 30.0) * 30.0
+                if target_lon < 0:
+                    target_lon = 330.0
 
-        ingress_time = self.find_planetary_return(
-            planet,
-            target_lon,
-            start_time,
-            sidereal_mode=sidereal_mode,
-            heliocentric=heliocentric,
-            max_search_years=0.5 if planet != Planet.PLUTO else 40.0,
-        )
+            ingress_time = self.find_planetary_return(
+                planet,
+                target_lon,
+                start_time,
+                sidereal_mode=sidereal_mode,
+                heliocentric=heliocentric,
+                max_search_years=0.5 if planet != Planet.PLUTO else 40.0,
+            )
 
-        sign_num = int((target_lon / 30.0) % 12) + 1
-        return ingress_time, sign_num
+            sign_num = int((target_lon / 30.0) % 12) + 1
+            return ingress_time, sign_num
 
     def find_ingresses(self, planet: Planet, start_time: Time, end_time: Time) -> list[Any]:
         """

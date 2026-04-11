@@ -1,3 +1,4 @@
+from ... import __version__
 from ...core.constants import HouseSystem, SiderealMode
 from ...schemas.base import AstroMeta
 
@@ -12,6 +13,9 @@ def get_meta(
     experimental: bool | None = None,
     algorithm_status: str | None = None,
     requires_domain_validation: bool | None = None,
+    capability: str | None = None,
+    feature_maturity: str | None = None,
+    calculation_fingerprint: str | None = None,
 ) -> AstroMeta:
     """Standardized metadata generator for all API responses."""
     ayan_name = None
@@ -28,4 +32,8 @@ def get_meta(
         experimental=experimental,
         algorithm_status=algorithm_status,
         requires_domain_validation=requires_domain_validation,
+        capability=capability,
+        feature_maturity=feature_maturity,
+        calculation_fingerprint=calculation_fingerprint,
+        engine_version=__version__,
     )

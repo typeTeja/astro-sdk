@@ -23,6 +23,8 @@ from .errors import (
 
 # Global library-level lock to protect the shared mutable state of pyswisseph
 _SWISS_LOCK = RLock()
+_CURRENT_TOPO = (0.0, 0.0, 0.0)
+_CURRENT_TIDAL: float | str = "automatic"
 
 
 class Ephemeris:
@@ -50,6 +52,8 @@ class Ephemeris:
 
         with _SWISS_LOCK:
             self._sidereal_mode = SiderealMode.LAHIRI
+            self._topocentric = _CURRENT_TOPO
+            self._tidal_acceleration = _CURRENT_TIDAL
 
             # Load environment variables from .env if present
             load_dotenv(find_dotenv())
@@ -75,6 +79,21 @@ class Ephemeris:
     def ephe_path(self) -> str:
         """Get the current ephemeris data path."""
         return self._ephe_path
+
+    @property
+    def sidereal_mode(self) -> SiderealMode:
+        """Return the tracked current sidereal mode."""
+        return self._sidereal_mode
+
+    @property
+    def topocentric(self) -> tuple[float, float, float]:
+        """Return the tracked current topocentric settings."""
+        return self._topocentric
+
+    @property
+    def tidal_acceleration(self) -> float | str:
+        """Return the tracked tidal acceleration setting."""
+        return self._tidal_acceleration
 
     def set_sidereal_mode(self, mode: SiderealMode, t0: float = 0.0, ayan_t0: float = 0.0) -> None:
         """
@@ -150,8 +169,51 @@ class Ephemeris:
         """
         Set topocentric parameters. Protected by global lock.
         """
+        global _CURRENT_TOPO
         with _SWISS_LOCK:
             swe.set_topo(lon, lat, alt)
+            _CURRENT_TOPO = (lon, lat, alt)
+            self._topocentric = _CURRENT_TOPO
+
+    def reset_topocentric(self) -> None:
+        """Reset topocentric parameters to the geocentric center."""
+        global _CURRENT_TOPO
+        with _SWISS_LOCK:
+            swe.set_topo(0, 0, 0)
+            _CURRENT_TOPO = (0.0, 0.0, 0.0)
+            self._topocentric = _CURRENT_TOPO
+
+    def set_tidal_acceleration(self, tidal: float) -> None:
+        """Explicitly set tidal acceleration and track the value."""
+        global _CURRENT_TIDAL
+        with _SWISS_LOCK:
+            swe.set_tid_acc(tidal)
+            _CURRENT_TIDAL = tidal
+            self._tidal_acceleration = tidal
+
+    def reset_tidal_acceleration(self) -> None:
+        """Reset tidal acceleration to Swiss Ephemeris automatic mode."""
+        global _CURRENT_TIDAL
+        with _SWISS_LOCK:
+            swe.set_tid_acc(swe.TIDAL_AUTOMATIC)
+            _CURRENT_TIDAL = "automatic"
+            self._tidal_acceleration = _CURRENT_TIDAL
+
+    def get_runtime_metadata(self) -> dict[str, Any]:
+        """Expose runtime metadata under the shared Swiss lock."""
+        with _SWISS_LOCK:
+            return {
+                "pyswisseph_version": swe.version,
+                "de_number": swe.DE_NUMBER,
+                "tidal_acceleration": swe.get_tid_acc(),
+                "ephemeris_path": swe.get_library_path(),
+                "sidereal_mode": self._sidereal_mode.name,
+                "topocentric": {
+                    "longitude": self._topocentric[0],
+                    "latitude": self._topocentric[1],
+                    "altitude": self._topocentric[2],
+                },
+            }
 
     def calculate_phenomena(self, jd: float, planet: Planet) -> dict[str, float]:
         """

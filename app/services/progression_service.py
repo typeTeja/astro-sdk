@@ -20,7 +20,8 @@ class ProgressionService:
         self,
         natal_time: Time,
         target_time: Time,
-        sidereal_mode: SiderealMode = SiderealMode.LAHIRI,
+        sidereal_mode: SiderealMode | None = SiderealMode.LAHIRI,
+        is_sidereal: bool = True,
     ) -> ProgressedChart:
         """
         Calculate secondary progression (1 day = 1 year).
@@ -33,7 +34,9 @@ class ProgressionService:
 
         # 2. Get positions for that JD
         positions: list[PlanetPosition] = self.natal_service.calculate_positions(
-            prog_time, sidereal_mode
+            prog_time,
+            sidereal_mode=sidereal_mode,
+            is_sidereal=is_sidereal,
         )
 
         # 3. Build plain-dict records (no schema coupling)

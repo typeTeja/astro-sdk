@@ -76,6 +76,10 @@ class AstroMeta(BaseModel):
     experimental: bool | None = Field(None, description="Flags this data as deriving from a partial or experimental algorithm route.")
     algorithm_status: str | None = Field(None, description="Indicates the depth of the algorithm logic (e.g. 'partial', 'stub', 'production').")
     requires_domain_validation: bool | None = Field(None, description="Flags whether the consumer must handle geometric boundary tuning.")
+    capability: str | None = Field(None, description="Canonical AstroSDK capability used for the calculation.")
+    feature_maturity: str | None = Field(None, description="Maturity level of the capability used for the calculation.")
+    calculation_fingerprint: str | None = Field(None, description="Deterministic fingerprint of the calculation context and primary inputs.")
+    engine_version: str | None = Field(None, description="AstroSDK engine version used to produce the result.")
 
 
 class BaseAstroResponse[T](BaseModel):

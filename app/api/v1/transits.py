@@ -1,21 +1,20 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from ...core.constants import SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...engine.chart_engine import ChartEngine
-from ...schemas.astro import PlanetPositionData
 from ...schemas.charts import NatalChartRequest
 from ...schemas.transits import TransitAspectSchema, TransitScanData, TransitScanResponse
-from ...services.transit_service import TransitService
+from ...services.western import WesternTransitService
+from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
 chart_engine = ChartEngine()
-transit_service = TransitService(ephemeris)
 
 
 @router.post(
@@ -50,28 +49,34 @@ async def scan_transits(
         sidereal_mode=sidereal_mode,
     )
 
-    # 2. Map domain PlanetPosition → PlanetPositionData for transit service input
-    natal_data = [
-        PlanetPositionData(
-            planet=p.planet.name,
-            longitude=p.longitude,
-            latitude=p.latitude,
-            distance=p.distance,
-            speed_long=p.speed_long,
-            is_retrograde=p.is_retrograde,
-            sign=p.sign + 1,
-            sign_name=PlanetPositionData.get_sign_name(p.longitude),
-        )
-        for p in natal_chart.planets
-    ]
-
-    # 3. Run transit scan — returns domain TransitAspect objects
-    domain_aspects = transit_service.calculate_transit_aspects(
-        natal_data,
-        t_transit,
+    context = build_western_chart_context(
         sidereal_mode=sidereal_mode,
+        is_sidereal=is_sidereal,
+        heliocentric=False,
+        latitude=request.location.latitude,
+        longitude=request.location.longitude,
+        altitude=request.location.altitude,
+        capability="western.transit",
+    )
+    transit_service = WesternTransitService(context, ephemeris=ephemeris)
+
+    # 2. Run transit scan — returns domain TransitAspect objects
+    domain_aspects = transit_service.scan_transits(
+        natal_chart.planets,
+        t_transit,
         aspect_types=aspect_types,
         global_orb=global_orb,
+    )
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "birth_time": request.time.time.isoformat(),
+            "transit_time": t_transit.dt.isoformat(),
+            "latitude": request.location.latitude,
+            "longitude": request.location.longitude,
+            "aspect_types": aspect_types or [],
+            "global_orb": global_orb,
+        },
     )
 
     # 4. Map domain TransitAspect → TransitAspectSchema (schema layer responsibility)
@@ -88,7 +93,13 @@ async def scan_transits(
     ]
 
     return TransitScanResponse(
-        meta=get_meta(is_sidereal=is_sidereal, sidereal_mode=sidereal_mode),
+        meta=get_meta(
+            is_sidereal=is_sidereal,
+            sidereal_mode=sidereal_mode,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
         data=TransitScanData(time=t_transit.dt, aspects=aspects),
     )
 
@@ -108,22 +119,45 @@ async def scan_helion_transits(
         Time(request.time.time),
         request.location.latitude,
         request.location.longitude,
-        sidereal_mode=None,
+        is_sidereal=False,
         heliocentric=True,
     )
-    natal_data = [
-        PlanetPositionData(
-            planet=p.planet.name,
-            longitude=p.longitude, latitude=p.latitude, distance=p.distance,
-            speed_long=p.speed_long, is_retrograde=p.is_retrograde, sign=p.sign + 1,
-            sign_name=PlanetPositionData.get_sign_name(p.longitude),
-        ) for p in natal_chart.planets
-    ]
-    domain_aspects = transit_service.calculate_transit_aspects(
-        natal_data, t_transit, sidereal_mode=None, heliocentric_transit=True, aspect_types=aspect_types
+    context = build_western_chart_context(
+        is_sidereal=False,
+        heliocentric=True,
+        latitude=request.location.latitude,
+        longitude=request.location.longitude,
+        altitude=request.location.altitude,
+        capability="western.transit.helio",
+    )
+    transit_service = WesternTransitService(context, ephemeris=ephemeris)
+    domain_aspects = transit_service.scan_transits(
+        natal_chart.planets,
+        t_transit,
+        aspect_types=aspect_types,
+    )
+    calc_meta = calculation_metadata(
+        context,
+        primary_inputs={
+            "birth_time": request.time.time.isoformat(),
+            "transit_time": t_transit.dt.isoformat(),
+            "latitude": request.location.latitude,
+            "longitude": request.location.longitude,
+            "aspect_types": aspect_types or [],
+        },
     )
     aspects = [TransitAspectSchema(transit_planet=a.transit_planet.name, natal_planet=a.natal_planet, aspect_type=a.aspect_type, angle=a.angle, orb=a.orb, is_applying=a.is_applying) for a in domain_aspects]
-    return TransitScanResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, heliocentric=True), data=TransitScanData(time=t_transit.dt, aspects=aspects))
+    return TransitScanResponse(
+        meta=get_meta(
+            is_sidereal=False,
+            sidereal_mode=None,
+            heliocentric=True,
+            capability=calc_meta["capability"],
+            feature_maturity=calc_meta["feature_maturity"],
+            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+        ),
+        data=TransitScanData(time=t_transit.dt, aspects=aspects),
+    )
 
 @router.post(
     "/declination", response_model=TransitScanResponse, summary="Scan for declination parallels"
@@ -135,6 +169,7 @@ async def scan_declination_transits(
     """
     Special scan checking ONLY for parallel and contra-parallel declination alignment.
     """
-    # Structurally identical to scan but hard-filters response to only check declination
-    # Stubbed here mapping to internal engine constraints (e.g., 0/180 exact matching on lat).
-    return TransitScanResponse(meta=get_meta(), data=TransitScanData(time=transit_time, aspects=[]))
+    raise HTTPException(
+        status_code=501,
+        detail="Declination transit scanning is not implemented yet.",
+    )

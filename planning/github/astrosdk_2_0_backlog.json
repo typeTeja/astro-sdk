@@ -1,0 +1,325 @@
+{
+  "repo": "typeTeja/astro-sdk",
+  "labels": [
+    {
+      "name": "area:architecture",
+      "color": "1f6feb",
+      "description": "Architecture, boundaries, and foundational engine structure"
+    },
+    {
+      "name": "area:core",
+      "color": "0e8a16",
+      "description": "Core runtime, ephemeris, determinism, and calculation safety"
+    },
+    {
+      "name": "area:western",
+      "color": "5319e7",
+      "description": "Western astrology feature set"
+    },
+    {
+      "name": "area:vedic",
+      "color": "fbca04",
+      "description": "Vedic astrology feature set"
+    },
+    {
+      "name": "area:mundane",
+      "color": "d93f0b",
+      "description": "Mundane, event scanning, and macro astrology"
+    },
+    {
+      "name": "area:research",
+      "color": "0052cc",
+      "description": "Research exports, scans, datasets, and statistics"
+    },
+    {
+      "name": "area:platform",
+      "color": "bfd4f2",
+      "description": "Jobs, alerts, persistence, SDK, and public platform surfaces"
+    },
+    {
+      "name": "type:epic",
+      "color": "c2e0c6",
+      "description": "Large multi-step initiative"
+    },
+    {
+      "name": "type:feature",
+      "color": "a2eeef",
+      "description": "Feature implementation work"
+    },
+    {
+      "name": "type:tech-debt",
+      "color": "fef2c0",
+      "description": "Refactor, cleanup, or architecture debt"
+    },
+    {
+      "name": "priority:p0",
+      "color": "b60205",
+      "description": "Critical foundational work"
+    },
+    {
+      "name": "priority:p1",
+      "color": "d93f0b",
+      "description": "High-priority execution item"
+    },
+    {
+      "name": "priority:p2",
+      "color": "fbca04",
+      "description": "Important but not blocking"
+    }
+  ],
+  "milestones": [
+    {
+      "title": "AstroSDK 2.0 - Milestone 0: Architecture Baseline",
+      "description": "Create the 2.0 architectural spine without breaking the current app. Establish contexts, grouped domains and services, capability metadata, and migration rules.",
+      "issues": [
+        {
+          "title": "Epic: Establish AstroSDK 2.0 architecture baseline",
+          "labels": ["type:epic", "area:architecture", "priority:p0"],
+          "body": "## Goal\nCreate the internal AstroSDK 2.0 structure without disrupting the current runtime.\n\n## Scope\n- Add the 2.0 architectural spine\n- Keep current API behavior intact\n- Make the new layout the default target for new work\n\n## Deliverables\n- `app/contexts/`\n- grouped `app/domain/*`\n- grouped `app/services/*`\n- capability and maturity registry\n- migration guidance for existing modules\n\n## Acceptance Criteria\n- New structure exists in the repository\n- Current tests still pass\n- New feature work can target the 2.0 layout immediately"
+        },
+        {
+          "title": "Create 2.0 context package for calculation, zodiac, coordinate, observer, house, and feature settings",
+          "labels": ["type:feature", "area:architecture", "priority:p0"],
+          "body": "## Goal\nReplace loose calculation flags with explicit context objects.\n\n## Scope\n- Add `CalculationContext`\n- Add `ZodiacContext`\n- Add `CoordinateContext`\n- Add `ObserverContext`\n- Add `HouseContext`\n- Add `FeatureContext`\n\n## Acceptance Criteria\n- Context classes exist and are importable\n- Context objects can express current core calculation modes\n- New services can depend on contexts instead of raw flags"
+        },
+        {
+          "title": "Introduce grouped domain namespaces under app/domain for astronomy, western, vedic, mundane, research, and common",
+          "labels": ["type:feature", "area:architecture", "priority:p1"],
+          "body": "## Goal\nReorganize domain models around calculation domains rather than a flat module set.\n\n## Scope\n- Create `app/domain/common`\n- Create `app/domain/astronomy`\n- Create `app/domain/western`\n- Create `app/domain/vedic`\n- Create `app/domain/mundane`\n- Create `app/domain/research`\n\n## Acceptance Criteria\n- Namespaces exist with initial exports\n- Existing domain models can begin migrating into grouped modules\n- No API breakage is introduced solely by this structural change"
+        },
+        {
+          "title": "Introduce grouped service namespaces under app/services for astronomy, western, vedic, mundane, research, and alerts",
+          "labels": ["type:feature", "area:architecture", "priority:p1"],
+          "body": "## Goal\nMove AstroSDK toward feature-domain services rather than route-driven growth.\n\n## Scope\n- Create grouped service packages\n- Establish import conventions\n- Add initial module placeholders for major domains\n\n## Acceptance Criteria\n- New services can land in grouped packages\n- Service boundaries are documented and clear\n- Existing code can migrate gradually"
+        },
+        {
+          "title": "Add capability registry and feature maturity model",
+          "labels": ["type:feature", "area:architecture", "priority:p1"],
+          "body": "## Goal\nMake supported capabilities and maturity levels explicit across the platform.\n\n## Scope\n- Add `FeatureMaturity` enum\n- Add capability metadata registry\n- Support `experimental`, `beta`, and `production`\n\n## Acceptance Criteria\n- Registry exists in core platform code\n- Features can declare maturity level\n- API metadata can consume this information in later milestones"
+        },
+        {
+          "title": "Document AstroSDK 2.0 migration rules for old flat modules",
+          "labels": ["type:tech-debt", "area:architecture", "priority:p1"],
+          "body": "## Goal\nPrevent architecture drift during the transition to 2.0.\n\n## Scope\n- Add migration guidance for current modules\n- Define placement rules for new features\n- Define how old routers/services should be adapted over time\n\n## Acceptance Criteria\n- Migration rules live in repo docs\n- New contributors can follow the 2.0 structure without guesswork"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 1: Core Determinism Hardening",
+      "description": "Make calculation modes, Swiss Ephemeris global state, and reproducibility metadata explicit and safe across the engine.",
+      "issues": [
+        {
+          "title": "Epic: Harden core determinism and explicit calculation contracts",
+          "labels": ["type:epic", "area:core", "priority:p0"],
+          "body": "## Goal\nMake AstroSDK's core runtime predictable, auditable, and safe under growth.\n\n## Scope\n- unify global-state handling\n- replace hidden defaults with explicit contexts\n- add reproducibility metadata\n- expand determinism test coverage\n\n## Acceptance Criteria\n- Core calculations are context-driven\n- Global Swiss state is protected consistently\n- Calculation metadata can reproduce outputs reliably"
+        },
+        {
+          "title": "Centralize Swiss Ephemeris state mutation behind one lock and one runtime boundary",
+          "labels": ["type:feature", "area:core", "priority:p0"],
+          "body": "## Goal\nRemove fragmented state management around Swiss Ephemeris.\n\n## Scope\n- centralize lock usage\n- isolate sidereal, topocentric, and tidal state changes\n- audit all `swe.*` call sites\n\n## Acceptance Criteria\n- All state mutation flows use the shared runtime boundary\n- No service mutates Swiss state outside approved pathways"
+        },
+        {
+          "title": "Refactor new and migrated services to use explicit calculation contexts instead of loose flags",
+          "labels": ["type:feature", "area:core", "priority:p0"],
+          "body": "## Goal\nRemove hidden mode behavior from service contracts.\n\n## Scope\n- update service signatures for contexts\n- preserve compatibility adapters where needed\n- document context-to-runtime mapping\n\n## Acceptance Criteria\n- New service APIs accept explicit contexts\n- Transitional adapters exist where needed\n- Tropical, sidereal, geo, helio, and topo modes are explicit"
+        },
+        {
+          "title": "Add calculation fingerprinting and reproducibility metadata",
+          "labels": ["type:feature", "area:core", "priority:p1"],
+          "body": "## Goal\nAttach a reproducible calculation fingerprint to engine outputs.\n\n## Scope\n- add fingerprint generator\n- include context, engine version, and precision inputs\n- surface metadata for API adoption\n\n## Acceptance Criteria\n- Fingerprints are deterministic for identical inputs\n- Metadata contract is documented and testable"
+        },
+        {
+          "title": "Expand determinism test coverage for tropical/sidereal and geo/helio/topocentric mode parity",
+          "labels": ["type:feature", "area:core", "priority:p1"],
+          "body": "## Goal\nProtect against future regression in mode handling.\n\n## Scope\n- add focused parity tests\n- add regression tests for mode leakage\n- add coverage for nested context handling\n\n## Acceptance Criteria\n- Determinism suite covers major calculation modes\n- Regressions similar to recent audit findings are locked down"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 2: Western Core 2.0",
+      "description": "Stabilize Western natal, transit, aspect, return, synastry, and composite features on the new architecture.",
+      "issues": [
+        {
+          "title": "Epic: Build Western Core 2.0 services and domain model",
+          "labels": ["type:epic", "area:western", "priority:p1"],
+          "body": "## Goal\nMake Western charting and forecasting a first-class 2.0 subsystem.\n\n## Scope\n- chart service\n- transit service\n- aspect service\n- return service\n- synastry and composite foundations\n\n## Acceptance Criteria\n- Western core runs on the 2.0 architecture\n- Key outputs use richer domain models"
+        },
+        {
+          "title": "Implement western chart, transit, and aspect services on the grouped 2.0 layout",
+          "labels": ["type:feature", "area:western", "priority:p1"],
+          "body": "## Goal\nMove common Western calculations into dedicated grouped services.\n\n## Scope\n- `chart_service.py`\n- `transit_service.py`\n- `aspect_service.py`\n- context-aware service contracts\n\n## Acceptance Criteria\n- New service modules exist and are usable\n- Existing routes can begin migrating to them"
+        },
+        {
+          "title": "Add ReturnChart and TransitWindow domain objects with exact-time support",
+          "labels": ["type:feature", "area:western", "priority:p1"],
+          "body": "## Goal\nPromote returns and transit timing to first-class domain structures.\n\n## Scope\n- `ReturnChart`\n- `TransitWindow`\n- entering, peak, leaving times\n- metadata and reproducibility context\n\n## Acceptance Criteria\n- Return and transit timing are modeled explicitly\n- Services return domain objects instead of loose dictionaries"
+        },
+        {
+          "title": "Add SynastryAspect and CompositeChart domain models",
+          "labels": ["type:feature", "area:western", "priority:p2"],
+          "body": "## Goal\nPrepare AstroSDK for relationship and composite workflows.\n\n## Scope\n- synastry domain models\n- composite domain models\n- baseline service contracts\n\n## Acceptance Criteria\n- Core domain objects exist\n- Follow-on implementation can proceed in parallel"
+        },
+        {
+          "title": "Design api/v2/western route families and response contracts",
+          "labels": ["type:feature", "area:western", "priority:p2"],
+          "body": "## Goal\nPrepare a clean public surface for the Western subsystem.\n\n## Scope\n- define route grouping\n- define response metadata expectations\n- align on stability and maturity output\n\n## Acceptance Criteria\n- `api/v2/western` design is documented\n- Routes can be implemented against stable contracts"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 3: Vedic Core 2.0",
+      "description": "Turn Vedic support into a structured subsystem with explicit domain models for nakshatras, dashas, vargas, yogas, and classical scoring systems.",
+      "issues": [
+        {
+          "title": "Epic: Build Vedic Core 2.0 services and domain model",
+          "labels": ["type:epic", "area:vedic", "priority:p1"],
+          "body": "## Goal\nTransform Vedic support from a partial collection into a domain-first subsystem.\n\n## Scope\n- nakshatra and pada positions\n- dasha periods\n- varga charts\n- yogas\n- scoring systems such as ashtakavarga and shadbala\n\n## Acceptance Criteria\n- Vedic core has a stable domain model\n- Services can evolve independently of HTTP routes"
+        },
+        {
+          "title": "Add NakshatraPosition and PadaPosition domain objects",
+          "labels": ["type:feature", "area:vedic", "priority:p1"],
+          "body": "## Goal\nCreate durable building blocks for Vedic positional calculations.\n\n## Scope\n- nakshatra index and name\n- pada subdivision\n- supporting metadata and context\n\n## Acceptance Criteria\n- Domain objects are immutable and tested\n- Services can consume them directly"
+        },
+        {
+          "title": "Add DashaPeriod and Vimshottari dasha service contracts",
+          "labels": ["type:feature", "area:vedic", "priority:p1"],
+          "body": "## Goal\nModel dasha timelines as first-class engine outputs.\n\n## Scope\n- `DashaPeriod`\n- Vimshottari hierarchy support\n- sub-period representation\n- metadata and validation fixtures\n\n## Acceptance Criteria\n- Dasha periods have explicit domain structures\n- Service contract supports nested periods cleanly"
+        },
+        {
+          "title": "Add VargaChart domain model and divisional chart service layout",
+          "labels": ["type:feature", "area:vedic", "priority:p1"],
+          "body": "## Goal\nFormalize divisional chart support under 2.0.\n\n## Scope\n- `VargaChart`\n- divisional calculation contracts\n- service/module split for varga logic\n\n## Acceptance Criteria\n- Varga outputs are modeled consistently\n- Service layout supports multiple divisional systems"
+        },
+        {
+          "title": "Formalize YogaHit, AshtakavargaMatrix, and ShadbalaScore models with maturity markers",
+          "labels": ["type:feature", "area:vedic", "priority:p2"],
+          "body": "## Goal\nSeparate partial or experimental Vedic scoring logic from production-ready outputs.\n\n## Scope\n- add domain models\n- attach maturity metadata\n- define acceptance criteria for promotion to production\n\n## Acceptance Criteria\n- Advanced Vedic outputs are explicitly modeled\n- Maturity levels are visible and testable"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 4: Mundane and Event Engine",
+      "description": "Group ingress, station, eclipse, and event scanning into a dedicated mundane/event subsystem with scalable job execution.",
+      "issues": [
+        {
+          "title": "Epic: Build the AstroSDK 2.0 mundane and event engine",
+          "labels": ["type:epic", "area:mundane", "priority:p1"],
+          "body": "## Goal\nCreate a durable subsystem for macro event timing and historical scanning.\n\n## Scope\n- ingresses\n- stations\n- eclipses\n- event clusters\n- background scan support\n\n## Acceptance Criteria\n- Event logic is grouped and context-aware\n- Large scans no longer rely on ad hoc service behavior"
+        },
+        {
+          "title": "Introduce MundaneIngress, StationEvent, and EventCluster domain objects",
+          "labels": ["type:feature", "area:mundane", "priority:p1"],
+          "body": "## Goal\nReplace loose event payloads with explicit event domain types.\n\n## Scope\n- ingress event model\n- station event model\n- event cluster model\n- metadata contract alignment\n\n## Acceptance Criteria\n- Event outputs use clear domain objects\n- Services no longer rely on untyped dictionaries for core event flows"
+        },
+        {
+          "title": "Split ingress, station, and macro event logic into services/mundane",
+          "labels": ["type:feature", "area:mundane", "priority:p1"],
+          "body": "## Goal\nGroup event scanning around a dedicated subsystem.\n\n## Scope\n- `ingress_service.py`\n- `station_service.py`\n- `event_service.py`\n- service boundary cleanup\n\n## Acceptance Criteria\n- Event logic is no longer scattered across generic modules\n- New work can proceed in parallel by event family"
+        },
+        {
+          "title": "Add historical validation fixtures for major ingresses, stations, and eclipses",
+          "labels": ["type:feature", "area:mundane", "priority:p2"],
+          "body": "## Goal\nGround the mundane engine in real-world event validation.\n\n## Scope\n- add golden fixtures\n- validate event dates and classifications\n- encode search tolerances in tests\n\n## Acceptance Criteria\n- Known historical events are represented in regression coverage"
+        },
+        {
+          "title": "Move large event scans to background job execution paths",
+          "labels": ["type:feature", "area:mundane", "area:platform", "priority:p2"],
+          "body": "## Goal\nPrevent long event scans from overloading request-time APIs.\n\n## Scope\n- define job interfaces\n- move long scans to workers\n- store scan execution state\n\n## Acceptance Criteria\n- Long-running scans can be queued and tracked\n- API contracts can return job handles for heavy event work"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 5: Research Platform",
+      "description": "Turn AstroSDK into a stronger research backend with export jobs, long-range scans, datasets, and statistical/correlation tools.",
+      "issues": [
+        {
+          "title": "Epic: Build the AstroSDK 2.0 research platform",
+          "labels": ["type:epic", "area:research", "priority:p1"],
+          "body": "## Goal\nSupport serious research workflows as first-class platform capabilities.\n\n## Scope\n- long-range scans\n- dataset exports\n- job tracking\n- statistical and timing-oriented outputs\n\n## Acceptance Criteria\n- Research workflows are not treated as oversized API requests\n- The platform can support repeated data generation and retrieval"
+        },
+        {
+          "title": "Add ResearchSeries, DatasetExport, and MarketCycleCorrelation domain models",
+          "labels": ["type:feature", "area:research", "priority:p1"],
+          "body": "## Goal\nMake research outputs explicit, typed, and reusable.\n\n## Scope\n- time series domain model\n- export metadata model\n- correlation timing model\n\n## Acceptance Criteria\n- Research outputs no longer depend on ad hoc dictionaries or raw CSV assumptions"
+        },
+        {
+          "title": "Build research export and scan workers for large ephemeris and event datasets",
+          "labels": ["type:feature", "area:research", "area:platform", "priority:p1"],
+          "body": "## Goal\nMove heavy research operations off the request path.\n\n## Scope\n- export worker\n- scan worker\n- worker contracts and status tracking\n\n## Acceptance Criteria\n- Large exports and scans can run asynchronously\n- Results can be retrieved through persisted job state"
+        },
+        {
+          "title": "Add CSV and JSON dataset export contracts with reproducibility metadata",
+          "labels": ["type:feature", "area:research", "priority:p2"],
+          "body": "## Goal\nStandardize research exports for repeatability and external analysis.\n\n## Scope\n- export schema definitions\n- calculation metadata embedding\n- stable file and payload contracts\n\n## Acceptance Criteria\n- Export formats are documented and testable\n- Research outputs are reproducible and version-aware"
+        },
+        {
+          "title": "Define capability reporting for research features and maturity levels",
+          "labels": ["type:feature", "area:research", "priority:p2"],
+          "body": "## Goal\nMake it clear which research capabilities are experimental vs production.\n\n## Scope\n- register research capabilities\n- define maturity classification\n- expose capability metadata in docs and API-ready structures\n\n## Acceptance Criteria\n- Research features are discoverable and maturity-tagged"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 6: Alerts, Jobs, and Persistence",
+      "description": "Promote alerts, saved charts, presets, and async jobs into durable platform features with clean persistence boundaries.",
+      "issues": [
+        {
+          "title": "Epic: Build AstroSDK 2.0 platform workflows for alerts, jobs, and persistence",
+          "labels": ["type:epic", "area:platform", "priority:p1"],
+          "body": "## Goal\nSupport durable product workflows beyond direct calculation requests.\n\n## Scope\n- jobs\n- alerts\n- saved charts\n- presets\n- execution history\n\n## Acceptance Criteria\n- Workflow entities have clear persistence and ownership boundaries\n- Platform features can support real products cleanly"
+        },
+        {
+          "title": "Add persistence models for jobs, saved charts, and user calculation presets",
+          "labels": ["type:feature", "area:platform", "priority:p1"],
+          "body": "## Goal\nPersist workflow entities without undermining deterministic calculation behavior.\n\n## Scope\n- job models\n- saved chart models\n- preset models\n- persistence boundaries and repositories\n\n## Acceptance Criteria\n- Core workflow entities are modeled and persisted cleanly"
+        },
+        {
+          "title": "Separate alert rule management from alert scanning execution",
+          "labels": ["type:feature", "area:platform", "priority:p1"],
+          "body": "## Goal\nSplit configuration and execution concerns for alerts.\n\n## Scope\n- alert rule service\n- alert scan service\n- execution history and status tracking\n\n## Acceptance Criteria\n- Alert rules and alert scans have distinct responsibilities\n- Alert execution can scale independently"
+        },
+        {
+          "title": "Add execution history and audit trails for background scans and alerts",
+          "labels": ["type:feature", "area:platform", "priority:p2"],
+          "body": "## Goal\nGive AstroSDK durable operational visibility for job-based workflows.\n\n## Scope\n- execution history storage\n- audit records\n- retrieval paths for debugging and review\n\n## Acceptance Criteria\n- Background workflows leave inspectable records"
+        },
+        {
+          "title": "Design notification adapter boundaries for future email, webhook, or app delivery",
+          "labels": ["type:feature", "area:platform", "priority:p2"],
+          "body": "## Goal\nPrepare AstroSDK alerts for multiple product delivery channels.\n\n## Scope\n- adapter interface design\n- notification event shapes\n- non-blocking execution rules\n\n## Acceptance Criteria\n- Notification delivery can be added without changing alert calculation logic"
+        }
+      ]
+    },
+    {
+      "title": "AstroSDK 2.0 - Milestone 7: Public Surface Consolidation",
+      "description": "Make AstroSDK usable as a broader platform through api/v2, a first-party Python SDK, and documented capability boundaries.",
+      "issues": [
+        {
+          "title": "Epic: Consolidate AstroSDK 2.0 public surfaces",
+          "labels": ["type:epic", "area:platform", "priority:p2"],
+          "body": "## Goal\nMake AstroSDK consumable as a platform, not only a REST backend.\n\n## Scope\n- `api/v2`\n- Python SDK\n- capability documentation\n- compatibility and maturity policy\n\n## Acceptance Criteria\n- AstroSDK can serve backend clients and analysis workflows cleanly"
+        },
+        {
+          "title": "Implement api/v2 route families aligned to architecture domains",
+          "labels": ["type:feature", "area:platform", "priority:p2"],
+          "body": "## Goal\nExpose a cleaner public API surface grouped by calculation domain.\n\n## Scope\n- `api/v2/astronomy`\n- `api/v2/western`\n- `api/v2/vedic`\n- `api/v2/mundane`\n- `api/v2/research`\n- `api/v2/alerts`\n\n## Acceptance Criteria\n- Route family structure exists\n- New APIs align with 2.0 service and domain contracts"
+        },
+        {
+          "title": "Publish a first-party Python SDK for Western, Vedic, and research workflows",
+          "labels": ["type:feature", "area:platform", "priority:p2"],
+          "body": "## Goal\nMake AstroSDK usable outside raw HTTP integration.\n\n## Scope\n- grouped SDK clients\n- context helpers\n- examples for notebook and backend usage\n\n## Acceptance Criteria\n- Python SDK package structure exists\n- Common workflows are available through stable SDK interfaces"
+        },
+        {
+          "title": "Document capability registry, maturity levels, and compatibility policy",
+          "labels": ["type:feature", "area:platform", "priority:p2"],
+          "body": "## Goal\nSet clear expectations for consumers of AstroSDK.\n\n## Scope\n- capability registry documentation\n- maturity policy\n- compatibility rules for `/api/v1`, `/api/v2`, and SDK surfaces\n\n## Acceptance Criteria\n- Public compatibility policy is documented in repo docs"
+        },
+        {
+          "title": "Expand examples for web, mobile-backend, desktop-backend, and research usage patterns",
+          "labels": ["type:feature", "area:platform", "priority:p2"],
+          "body": "## Goal\nShow how AstroSDK should be consumed across different product environments.\n\n## Scope\n- web app backend example\n- mobile app backend example\n- desktop app backend example\n- research and notebook example\n\n## Acceptance Criteria\n- Example coverage reflects AstroSDK's target product surfaces"
+        }
+      ]
+    }
+  ]
+}
