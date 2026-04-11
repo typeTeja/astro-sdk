@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Query
 
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.signals import (
     AstroIntensityList,
@@ -18,12 +17,12 @@ from ...schemas.signals import (
     ClusterIndexSchema,
     ClusterSchema,
 )
-from ...services.signals_service import SignalsService
+from ...services.research.quant_service import ResearchQuantService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-signals_service = SignalsService(ephemeris)
 
 
 @router.get(
@@ -42,6 +41,9 @@ async def get_astro_intensity(
     """
     t_start = Time(start_time)
     t_end = Time.from_julian_day(t_start.julian_day + max_days)
+    
+    context = create_default_context()
+    signals_service = ResearchQuantService(context, ephemeris=ephemeris)
 
     results = signals_service.calculate_intensity(t_start, t_end, step_hours)
 
@@ -77,6 +79,9 @@ async def get_cluster_index(
     """
     t_start = Time(start_time)
     t_end = Time.from_julian_day(t_start.julian_day + max_days)
+    
+    context = create_default_context()
+    signals_service = ResearchQuantService(context, ephemeris=ephemeris)
 
     results = signals_service.calculate_cluster_index(t_start, t_end, orb_degrees, step_hours)
 
@@ -86,9 +91,9 @@ async def get_cluster_index(
             stellar_density_score=r.stellar_density_score,
             clusters=[
                 ClusterSchema(
-                    center_longitude=c["center_longitude"], # type: ignore[dict-item]
-                    span_degrees=c["span_degrees"], # type: ignore[dict-item]
-                    planets=[p.name for p in c["planets"]], # type: ignore[attr-defined]
+                    center_longitude=c.center_longitude,
+                    span_degrees=c.span_degrees,
+                    planets=c.planets,
                 )
                 for c in r.clusters
             ],

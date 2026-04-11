@@ -16,13 +16,12 @@ from ...schemas.charts import (
     TransitChartData,
     TransitChartResponse,
 )
-from ...services.panchanga_service import PanchangaService
+from ...services.vedic.panchanga_service import VedicPanchangaService
 from ...services.western import WesternChartService
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-pan_service = PanchangaService(ephemeris)
 
 
 @router.post("/natal", response_model=NatalChartResponse, summary="Generate full natal chart")
@@ -188,6 +187,12 @@ async def get_panchanga(
     Calculate the five elements of the Vedic calendar (Tithi, Nakshatra, Yoga, Karana, Vara).
     """
     t = Time(time)
+    # Build a simple 2.0 context for this legacy endpoint
+    from ...contexts.factories import create_default_context
+    context = create_default_context()
+    context.zodiac.sidereal_mode = SiderealMode.LAHIRI
+    
+    pan_service = VedicPanchangaService(context, ephemeris=ephemeris)
     results = pan_service.calculate_panchanga(t, latitude, longitude)
 
     data = PanchangaData(

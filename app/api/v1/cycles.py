@@ -6,16 +6,14 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.base import BaseAstroResponse
-from ...services.natal_service import NatalService
+from ...services.western.chart_service import WesternChartService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-natal_service = NatalService(ephemeris)
 
 
 class CompositeRequest(BaseModel):
@@ -49,19 +47,19 @@ async def post_cycles_composite(
     at a specific point in time.
     """
     t = Time(request.time)
+    context = create_default_context()
+    context.zodiac.is_sidereal = is_sidereal
+    context.zodiac.sidereal_mode = sidereal_mode
     
-    positions = natal_service.calculate_positions(t, sidereal_mode if is_sidereal else None)
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
+    chart = chart_service.create_chart(t, 0.0, 0.0)
     
-    selected_longs = []
-    for pos in positions:
-        if pos.planet in request.planets:
-            selected_longs.append(pos.longitude)
+    selected_longs = [p.longitude for p in chart.planets if p.planet in request.planets]
             
     if not selected_longs:
         centroid = 0.0
     else:
-        # Simple arithmetic mean of longitudes for the basic composite structure
-        # Advanced spherical midpoint mathematics can be subbed in later.
+        # Simple arithmetic mean of longitudes
         centroid = sum(selected_longs) / len(selected_longs)
 
     data = CompositeData(

@@ -5,16 +5,14 @@ from fastapi import APIRouter, HTTPException, Query
 from ...core.constants import SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
-from ...engine.chart_engine import ChartEngine
-from ...schemas.charts import NatalChartRequest
-from ...schemas.transits import TransitAspectSchema, TransitScanData, TransitScanResponse
+from ...services.western.chart_service import WesternChartService
 from ...services.western import WesternTransitService
+from ...contexts.factories import create_default_context
 from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-chart_engine = ChartEngine()
 
 
 @router.post(
@@ -41,24 +39,22 @@ async def scan_transits(
         if "is_sidereal" in request.settings:
             is_sidereal = bool(request.settings["is_sidereal"])
 
-    # 1. Calculate natal chart from birth data
-    natal_chart = chart_engine.create_chart(
+    context = create_default_context()
+    context.zodiac.is_sidereal = is_sidereal
+    context.zodiac.sidereal_mode = sidereal_mode
+    context.location.latitude = request.location.latitude
+    context.location.longitude = request.location.longitude
+    context.location.altitude = request.location.altitude or 0.0
+
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
+    transit_service = WesternTransitService(context, ephemeris=ephemeris)
+
+    # 1. Calculate natal chart
+    natal_chart = chart_service.create_chart(
         Time(request.time.time),
         request.location.latitude,
         request.location.longitude,
-        sidereal_mode=sidereal_mode,
     )
-
-    context = build_western_chart_context(
-        sidereal_mode=sidereal_mode,
-        is_sidereal=is_sidereal,
-        heliocentric=False,
-        latitude=request.location.latitude,
-        longitude=request.location.longitude,
-        altitude=request.location.altitude,
-        capability="western.transit",
-    )
-    transit_service = WesternTransitService(context, ephemeris=ephemeris)
 
     # 2. Run transit scan — returns domain TransitAspect objects
     domain_aspects = transit_service.scan_transits(
@@ -115,22 +111,23 @@ async def scan_helion_transits(
     Look for angular aspects using heliocentric coordinates (Sun-centered).
     """
     t_transit = Time(transit_time)
-    natal_chart = chart_engine.create_chart(
+    context = create_default_context()
+    context.zodiac.is_sidereal = False
+    context.zodiac.sidereal_mode = None
+    context.zodiac.heliocentric = True
+    context.location.latitude = request.location.latitude
+    context.location.longitude = request.location.longitude
+    context.location.altitude = request.location.altitude or 0.0
+
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
+    transit_service = WesternTransitService(context, ephemeris=ephemeris)
+
+    # 1. Native Natal Chart (Helio)
+    natal_chart = chart_service.create_chart(
         Time(request.time.time),
         request.location.latitude,
         request.location.longitude,
-        is_sidereal=False,
-        heliocentric=True,
     )
-    context = build_western_chart_context(
-        is_sidereal=False,
-        heliocentric=True,
-        latitude=request.location.latitude,
-        longitude=request.location.longitude,
-        altitude=request.location.altitude,
-        capability="western.transit.helio",
-    )
-    transit_service = WesternTransitService(context, ephemeris=ephemeris)
     domain_aspects = transit_service.scan_transits(
         natal_chart.planets,
         t_transit,

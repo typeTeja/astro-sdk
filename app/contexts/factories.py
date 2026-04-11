@@ -41,3 +41,13 @@ def build_western_chart_context(
         observer=observer,
         feature=FeatureContext(capability=capability, maturity=maturity),
     )
+
+
+def create_default_context() -> CalculationContext:
+    """Create a minimal default context for internal migration logic."""
+    return CalculationContext(
+        zodiac=ZodiacContext(zodiac=ZodiacType.TROPICAL, sidereal_mode=None),
+        coordinate=CoordinateContext(system=CoordinateSystem.GEOCENTRIC),
+        house=HouseContext(system=HouseSystem.PLACIDUS),
+        feature=FeatureContext(capability="core.generic", maturity=FeatureMaturity.EXPERIMENTAL),
+    )

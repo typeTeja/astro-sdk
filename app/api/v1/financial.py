@@ -12,23 +12,21 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Query
 
 from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.financial import (
     FinancialTimeWindowData,
     FinancialTimeWindowResponse,
     TimeWindowSchema,
 )
-from ...services.crossing_service import CrossingService
-from ...services.events_service import EventsService
-from ...services.financial_time_service import FinancialTimeService
+from ...services.mundane.station_service import StationService
+from ...services.mundane.ingress_service import IngressService
+from ...services.astronomy.lunar_service import AstronomyLunarService
+from ...services.research.financial_service import ResearchFinancialService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-crossing_service = CrossingService(ephemeris)
-events_service = EventsService(ephemeris, crossing_service)
-financial_service = FinancialTimeService(ephemeris, events_service)
 
 
 @router.get(
@@ -45,9 +43,11 @@ async def get_financial_time_windows(
     """
     Calculate retrograde and critical anomaly bounded time windows over a range.
     By default this checks all planets if not specified. Using preset='big_shifts' will lock it to Jupiter, Saturn, Uranus, Neptune, and Pluto.
-    """
-    t_start = Time(start_time)
+    ""    t_start = Time(start_time)
     t_end = Time.from_julian_day(t_start.julian_day + max_days)
+    
+    context = create_default_context()
+    financial_service = ResearchFinancialService(context, ephemeris=ephemeris)
 
     if preset == "big_shifts":
         planets = [Planet.JUPITER, Planet.SATURN, Planet.URANUS, Planet.NEPTUNE, Planet.PLUTO]
@@ -60,7 +60,7 @@ async def get_financial_time_windows(
             start_time=w.start_time,
             end_time=w.end_time,
             event_type=w.event_type,
-            metadata=w.metadata,
+            metadata={k: str(v) for k, v in w.metadata.items()},
         )
         for w in windows
     ]
@@ -85,8 +85,16 @@ async def get_financial_retrogrades(
     if planet in [Planet.SUN, Planet.MOON]:
         return FinancialEventResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, astro_data_only=True, no_financial_advice=True), data=FinancialEventData(events=[]))
 
-    events = events_service.get_retrograde_stations(t_start, planet, count=2)
-    mapped = [{"planet": e.planet.name, "time": e.time, "type": e.station_type} for e in events if end_time is None or e.time <= end_time]
+    context = create_default_context()
+    station_service = StationService(context, ephemeris=ephemeris)
+    # Search for a long enough window to find next stations
+    scan_end = Time.from_julian_day(t_start.julian_day + 400)
+    events = station_service.scan_stations(planet, t_start, scan_end)
+    
+    mapped = [
+        {"planet": planet.name, "time": e.time, "type": e.station_type} 
+        for e in events if end_time is None or e.time <= end_time
+    ]
     return FinancialEventResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, astro_data_only=True, no_financial_advice=True), data=FinancialEventData(events=mapped))
 
 
@@ -98,8 +106,18 @@ async def get_financial_ingresses(
     sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
 ) -> FinancialEventResponse:
     t_start = Time(start_time)
-    events = events_service.get_sign_ingresses(t_start, planet, count=12 if end_time else 1, sidereal_mode=sidereal_mode)
-    mapped = [{"planet": e.planet.name, "time": e.time, "from_sign": e.from_sign, "to_sign": e.to_sign} for e in events if end_time is None or e.time <= end_time]
+    context = create_default_context()
+    context.zodiac.sidereal_mode = sidereal_mode
+    ingress_service = IngressService(context, ephemeris=ephemeris)
+    
+    # scan roughly a year if no end_time
+    count = 12 if end_time else 1
+    events = ingress_service.scan_ingresses(planet, t_start, count=count)
+    
+    mapped = [
+        {"planet": planet.name, "time": e.time, "from_sign": e.from_sign, "to_sign": e.to_sign} 
+        for e in events if end_time is None or e.time <= end_time
+    ]
     return FinancialEventResponse(meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode, astro_data_only=True, no_financial_advice=True), data=FinancialEventData(events=mapped))
 
 
@@ -109,19 +127,26 @@ async def get_financial_eclipses(
     end_time: datetime | None = Query(None),
 ) -> FinancialEventResponse:
     t_start = Time(start_time)
-    from ...services.lunar_service import LunarService
-    lunar_service = LunarService(ephemeris)
-    eclipses = lunar_service.find_lunar_eclipses(t_start, t_start.dt.year + 2) # Arbitrary bounded search
-    mapped = []
-    for jd, _type in eclipses[:5]:
-        t = Time.from_julian_day(jd)
-        if end_time is None or t.dt <= end_time:
-            mapped.append({"time": t.dt, "type": _type})
-    return FinancialEventResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, astro_data_only=True, no_financial_advice=True), data=FinancialEventData(events=mapped))
+    context = create_default_context()
+    lunar_service = AstronomyLunarService(context, ephemeris=ephemeris)
+    
+    # Native 2.0 find eclipses logic
+    results = []
+    current_jd = t_start.julian_day
+    for _ in range(5):
+        res = ephemeris.find_next_eclipse(current_jd, solar=False) # Lunar eclipses primarily for financial classics
+        if not res: break
+        t = Time.from_julian_day(res["peak_jd"])
+        if end_time and t.dt > end_time: break
+        results.append({"time": t.dt, "type": res["type"]})
+        current_jd = res["peak_jd"] + 30.0
+
+    return FinancialEventResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, astro_data_only=True, no_financial_advice=True), data=FinancialEventData(events=results))
+
 
 @router.get("/events", response_model=FinancialEventResponse)
 async def get_financial_events(
     start_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
 ) -> FinancialEventResponse:
-    # Blanket default representing high-volume macro timeline
     return FinancialEventResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None, astro_data_only=True, no_financial_advice=True), data=FinancialEventData(events=[]))
+)

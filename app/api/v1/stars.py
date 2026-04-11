@@ -5,15 +5,14 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Query
 
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.stars import FixedStarResponse, FixedStarSchema, FixedStarsListResponse
-from ...services.fixed_star_service import FixedStarService
+from ...services.astronomy.star_service import AstronomyStarService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-star_service = FixedStarService(ephemeris)
 
 
 @router.get(
@@ -31,6 +30,10 @@ async def get_fixed_star(
     Use Swiss Ephemeris star names (e.g., 'Aldebaran', 'Regulus', 'Spica').
     """
     t = Time(time)
+    context = create_default_context()
+    context.zodiac.is_sidereal = sidereal
+    star_service = AstronomyStarService(context, ephemeris=ephemeris)
+    
     star = star_service.get_star_position(star_name, t, sidereal)
 
     data = FixedStarSchema(
@@ -56,6 +59,10 @@ async def get_fixed_stars(
     Calculate positions for a list of fixed stars in a single request.
     """
     t = Time(time)
+    context = create_default_context()
+    context.zodiac.is_sidereal = sidereal
+    star_service = AstronomyStarService(context, ephemeris=ephemeris)
+    
     stars = star_service.get_stars_positions(star_names, t, sidereal)
 
     data = [

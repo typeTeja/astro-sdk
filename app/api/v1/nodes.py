@@ -17,12 +17,12 @@ from ...schemas.nodes import (
     PlanetaryNodesResponse,
     PlanetaryNodesSchema,
 )
-from ...services.node_service import NodeService
+from ...services.astronomy.node_service import AstronomyNodeService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-node_service = NodeService(ephemeris)
 
 
 @router.get(
@@ -39,7 +39,11 @@ async def get_lunar_nodes(
     Calculate the True or Mean North and South lunar nodes.
     """
     t = Time(time)
-    north, south = node_service.calculate_lunar_nodes(t, true_node=true_node)
+    context = create_default_context()
+    context.zodiac.sidereal_mode = sidereal_mode
+    node_service = AstronomyNodeService(context, ephemeris=ephemeris)
+    
+    north, south = node_service.get_lunar_nodes(t, true_node=true_node)
 
     node_label = "True Node" if true_node else "Mean Node"
     data = LunarNodesSchema(
@@ -73,7 +77,11 @@ async def get_lilith(
     Calculate the position of Black Moon Lilith (Mean or True).
     """
     t = Time(time)
-    pos = node_service.calculate_lilith(t, true_lilith=true_lilith)
+    context = create_default_context()
+    context.zodiac.sidereal_mode = sidereal_mode
+    node_service = AstronomyNodeService(context, ephemeris=ephemeris)
+    
+    pos = node_service.get_lilith(t, true_lilith=true_lilith)
 
     data = LilithSchema(
         planet=pos.planet.name,
@@ -99,8 +107,12 @@ async def get_planetary_nodes(
     Calculate ascending/descending nodes and perihelion/aphelion for a planet.
     """
     t = Time(time)
-    nodes = node_service.calculate_planetary_nodes(t, planet)
-    apsides = node_service.calculate_apsides(t, planet)
+    # Binary search for nodes/apsides is mostly tropical/neutral in SE
+    context = create_default_context()
+    node_service = AstronomyNodeService(context, ephemeris=ephemeris)
+    
+    nodes = node_service.get_planetary_nodes(t, planet)
+    apsides = node_service.get_apsides(t, planet)
 
     data = PlanetaryNodesSchema(
         planet=planet.name,

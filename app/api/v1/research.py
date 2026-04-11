@@ -10,12 +10,12 @@ from fastapi.responses import StreamingResponse
 from ...core.constants import SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
-from ...services.research_service import ResearchService
+from ...services.research.export_service import ExportService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-research_service = ResearchService(ephemeris)
 
 
 @router.get(
@@ -42,8 +42,21 @@ async def get_ephemeris_csv(
     t_start = Time(start_time)
     t_end = Time.from_julian_day(t_start.julian_day + (years * 365.25))
 
-    generator = research_service.stream_ephemeris_csv(
-        t_start, t_end, step_hours, is_sidereal, sidereal_mode
+    context = create_default_context()
+    context.zodiac.is_sidereal = is_sidereal
+    context.zodiac.sidereal_mode = sidereal_mode
+    
+    export_service = ExportService(context, ephemeris=ephemeris)
+    from ...core.constants import Planet
+    planets = [Planet.SUN, Planet.MOON, Planet.MERCURY, Planet.VENUS, Planet.MARS, Planet.JUPITER, Planet.SATURN]
+    
+    from datetime import timedelta
+    generator = export_service.stream_ephemeris(
+        planets=planets,
+        start_time=t_start,
+        end_time=t_end,
+        step=timedelta(hours=step_hours),
+        format="CSV"
     )
 
     filename = f"ephemeris_{t_start.dt.strftime('%Y%m%d')}_to_{t_end.dt.strftime('%Y%m%d')}.csv"

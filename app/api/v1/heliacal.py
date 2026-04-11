@@ -9,12 +9,13 @@ from ...core.constants import Planet
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.heliacal import HeliacalResponse, HeliacalEventSchema, StationsResponse, StationSchema
-from ...services.heliacal_service import HeliacalService
+from ...services.astronomy.visibility_service import AstronomyVisibilityService
+from ...services.mundane.station_service import StationService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-heliacal_service = HeliacalService(ephemeris)
 
 
 @router.get(
@@ -35,8 +36,11 @@ async def get_heliacal_rising(
     after its period of invisibility in the solar glare.
     """
     t = Time(time)
-    result = heliacal_service.calculate_heliacal_rising(
-        planet, t, latitude, longitude, altitude, star_name
+    context = create_default_context()
+    visibility_service = AstronomyVisibilityService(context, ephemeris=ephemeris)
+    
+    result = visibility_service.get_heliacal_event(
+        planet, t, latitude, longitude, altitude, star_name, is_rising=True
     )
 
     data = HeliacalEventSchema(
@@ -64,8 +68,11 @@ async def get_heliacal_setting(
     Find the next heliacal setting — when a planet/star disappears into the solar glare.
     """
     t = Time(time)
-    result = heliacal_service.calculate_heliacal_setting(
-        planet, t, latitude, longitude, altitude, star_name
+    context = create_default_context()
+    visibility_service = AstronomyVisibilityService(context, ephemeris=ephemeris)
+    
+    result = visibility_service.get_heliacal_event(
+        planet, t, latitude, longitude, altitude, star_name, is_rising=False
     )
 
     data = HeliacalEventSchema(
@@ -88,14 +95,20 @@ async def get_stations(
     """
     Find all station points (turning retrograde or direct) for a planet in a given year.
     """
-    raw = heliacal_service.find_all_stations(planet, year)
+    from datetime import datetime
+    t_start = Time(datetime(year, 1, 1))
+    t_end = Time(datetime(year, 12, 31, 23, 59, 59))
+    
+    context = create_default_context()
+    station_service = StationService(context, ephemeris=ephemeris)
+    events = station_service.scan_stations(planet, t_start, t_end)
 
     data = [
         StationSchema(
-            time=s["time"].dt,
-            station_type=s["type"],
-            julian_day=s["jd"],
+            time=e.time,
+            station_type=e.station_type,
+            julian_day=Time(e.time).julian_day,
         )
-        for s in raw
+        for e in events
     ]
     return StationsResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)

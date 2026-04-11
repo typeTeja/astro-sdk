@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Query
 
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.lunar import (
     EclipseResponse,
@@ -10,12 +9,12 @@ from ...schemas.lunar import (
     LunarExtremeResponse,
     LunarPhasesResponse,
 )
-from ...services.lunar_service import LunarService
+from ...services.astronomy.lunar_service import AstronomyLunarService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-lunar_service = LunarService(ephemeris)
 
 
 @router.get("/phases", response_model=LunarPhasesResponse, summary="Get major lunar phases")
@@ -28,9 +27,21 @@ async def get_lunar_phases(
     Search for upcoming major lunar phases (New, Full, etc.) or a specific angle.
     """
     t = Time(start_time)
-    phases = lunar_service.get_next_phases(t, count=count, target_angle=angle)
+    context = create_default_context()
+    lunar_service = AstronomyLunarService(context, ephemeris=ephemeris)
+    
+    phases = lunar_service.get_next_phases(t, count=count)
 
-    return LunarPhasesResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=phases)
+    data = [
+        {
+            "phase_name": p.phase_name,
+            "time": p.time,
+            "julian_day": Time(p.time).julian_day,
+            "degree": 0.0 # Standard phase angles
+        }
+        for p in phases
+    ]
+    return LunarPhasesResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
 
 
 @router.get(
@@ -44,6 +55,9 @@ async def get_lunar_extremes(
     Find upcoming Apogee and Perigee points.
     """
     t = Time(start_time)
+    context = create_default_context()
+    lunar_service = AstronomyLunarService(context, ephemeris=ephemeris)
+    
     extremes = lunar_service.get_lunar_extremes(t, count=count)
 
     return LunarExtremeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=extremes)

@@ -5,18 +5,16 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Query
 
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.crossings import AspectCrossingResponse, AspectCrossingSchema, PlanetaryReturnResponse, PlanetaryReturnSchema
-from ...services.crossing_service import CrossingService
-from ...services.western import WesternReturnService
+from ...services.mundane.crossing_service import CrossingService
+from ...services.western.return_service import WesternReturnService
+from ...contexts.factories import create_default_context
 from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-crossing_service = CrossingService(ephemeris)
 
 
 @router.get(
@@ -36,11 +34,10 @@ async def get_planetary_return(
     Useful for solar returns, lunar returns, and planetary returns.
     """
     t_start = Time(start_time)
-    context = build_western_chart_context(
-        sidereal_mode=sidereal_mode,
-        is_sidereal=True,
-        capability="western.return",
-    )
+    context = create_default_context()
+    context.zodiac.sidereal_mode = sidereal_mode
+    context.zodiac.is_sidereal = True
+    
     return_service = WesternReturnService(context, ephemeris=ephemeris)
     result = return_service.find_planetary_return(
         planet,
@@ -48,16 +45,8 @@ async def get_planetary_return(
         t_start,
         max_days=max_days,
     )
-    calc_meta = calculation_metadata(
-        context,
-        primary_inputs={
-            "planet": planet.name,
-            "target_longitude": target_longitude,
-            "start_time": t_start.dt.isoformat(),
-            "max_days": max_days,
-        },
-    )
-
+    
+    # Use native context fingerprint
     data = PlanetaryReturnSchema(
         planet=planet.name,
         return_time=result.dt,
@@ -67,9 +56,8 @@ async def get_planetary_return(
         meta=get_meta(
             is_sidereal=True,
             sidereal_mode=sidereal_mode,
-            capability=calc_meta["capability"],
-            feature_maturity=calc_meta["feature_maturity"],
-            calculation_fingerprint=calc_meta["calculation_fingerprint"],
+            capability="western.return",
+            calculation_fingerprint=context.fingerprint,
         ),
         data=[data],
     )
@@ -92,6 +80,9 @@ async def get_aspect_crossing(
     """
     t_start = Time(start_time)
     t_end = Time.from_julian_day(t_start.julian_day + max_days)
+    
+    context = create_default_context()
+    crossing_service = CrossingService(context, ephemeris=ephemeris)
 
     crossings = crossing_service.find_aspects(p1, p2, target_angle, t_start, t_end)
 

@@ -5,15 +5,14 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Query
 
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.parans import ParanResponse, ParanSchema
-from ...services.paran_service import ParanService
+from ...services.astronomy.paran_service import AstronomyParanService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-paran_service = ParanService(ephemeris)
 
 
 @router.get(
@@ -33,15 +32,17 @@ async def get_parans(
     A paran occurs when two planets simultaneously hit the horizon or meridian angles.
     """
     t = Time(time)
+    context = create_default_context()
+    paran_service = AstronomyParanService(context, ephemeris=ephemeris)
     raw = paran_service.find_parans(t, latitude, longitude, altitude, orb_minutes)
 
     data = [
         ParanSchema(
-            p1=r["p1"].name,
+            p1=r["p1"],
             event1=r["type1"],
-            p2=r["p2"].name,
+            p2=r["p2"],
             event2=r["type2"],
-            time=r["time"].dt,
+            time=r["time"],
             orb_minutes=r["orb_minutes"],
         )
         for r in raw

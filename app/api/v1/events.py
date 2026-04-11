@@ -6,14 +6,13 @@ from ...core.constants import Planet, SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.events import IngressResponse, IngressSchema, RetrogradeResponse, RetrogradeSchema
-from ...services.crossing_service import CrossingService
-from ...services.events_service import EventsService
+from ...services.mundane.ingress_service import IngressService
+from ...services.mundane.station_service import StationService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-crossing_service = CrossingService(ephemeris)
-events_service = EventsService(ephemeris, crossing_service)
 
 
 @router.get("/ingresses", response_model=IngressResponse, summary="Get sign ingresses for a planet")
@@ -27,28 +26,31 @@ async def get_ingresses(
     Search for sign boundary crossings (0° sign entry) for a planet.
     """
     t_start = Time(start_time)
-    count = 12 if end_time else 1
+    t_end = Time(end_time) if end_time else Time(start_time + timedelta(days=365))
+    
+    context = create_default_context()
+    context.zodiac.sidereal_mode = sidereal_mode
+    context.zodiac.zodiac = "sidereal"
+    
+    ingress_service = IngressService(context, ephemeris=ephemeris)
+    events = ingress_service.scan_ingresses(planet, t_start, t_end)
 
-    events = events_service.get_sign_ingresses(
-        t_start, planet, count=count, sidereal_mode=sidereal_mode
-    )
-
-    # Map domain PlanetaryEvent → IngressSchema
+    # Map domain MundaneIngress → IngressSchema
     ingresses = [
         IngressSchema(
             planet=e.planet.name,
             time=e.time,
-            from_sign=e.from_sign or "",
-            to_sign=e.to_sign or "",
+            from_sign=str(e.sign_from),
+            to_sign=str(e.sign_to),
         )
         for e in events
-        if end_time is None or e.time <= end_time
     ]
 
     return IngressResponse(
         meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=ingresses
     )
 
+from datetime import timedelta
 
 @router.get("/retrogrades", response_model=RetrogradeResponse, summary="Get planetary stations")
 async def get_retrogrades(
@@ -60,21 +62,23 @@ async def get_retrogrades(
     Search for planetary stations (turning Direct or Retrograde).
     """
     t_start = Time(start_time)
+    t_end = Time(end_time) if end_time else Time(start_time + timedelta(days=365))
 
     if planet in [Planet.SUN, Planet.MOON]:
         return RetrogradeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=[])
 
-    events = events_service.get_retrograde_stations(t_start, planet, count=2)
+    context = create_default_context()
+    station_service = StationService(context, ephemeris=ephemeris)
+    events = station_service.scan_stations(planet, t_start, t_end)
 
-    # Map domain PlanetaryEvent → RetrogradeSchema
+    # Map domain StationEvent → RetrogradeSchema
     stations = [
         RetrogradeSchema(
             planet=e.planet.name,
             time=e.time,
-            station_type=e.station_type or "UNKNOWN",
+            station_type=e.station_type,
         )
         for e in events
-        if end_time is None or e.time <= end_time
     ]
 
     return RetrogradeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=stations)

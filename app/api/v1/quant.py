@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BeforeValidator
 
 from ...core.constants import Planet, validate_enum_by_name
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.quant import (
     AstroIndicatorResponse,
@@ -15,14 +14,13 @@ from ...schemas.quant import (
     SynodicPhaseResponse,
     SynodicPhaseSchema,
 )
-from ...services.quant_service import AstroQuantService
-from ...services.synodic_service import SynodicService
+from ...services.research.quant_service import ResearchQuantService
+from ...services.astronomy.synodic_service import AstronomySynodicService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-quant_service = AstroQuantService(ephemeris)
-synodic_service = SynodicService(ephemeris)
 
 # Specialized Type with BeforeValidator for API parameters
 PlanetParam = Annotated[
@@ -46,6 +44,9 @@ async def get_synodic_phase(
     Calculate the relative angular phase (0-360°) between two planets.
     """
     t = Time(time)
+    # Build a simple 2.0 context 
+    context = create_default_context()
+    quant_service = ResearchQuantService(context, ephemeris=ephemeris)
     res = quant_service.calculate_synodic_phase(p1, p2, t)
 
     return SynodicPhaseResponse(
@@ -72,6 +73,8 @@ async def get_next_synodic_event(
     Find the next occurrence of a specific synodic angle (e.g., 0°=Conjunction).
     """
     t = Time(time)
+    context = create_default_context()
+    synodic_service = AstronomySynodicService(context, ephemeris=ephemeris)
     res = synodic_service.find_next_event(p1, p2, t, target_angle, max_days)
 
     if not res:
@@ -80,10 +83,11 @@ async def get_next_synodic_event(
             data=None,  # type: ignore[arg-type]
         )
 
-    event_time, angle = res
     return SynodicEventResponse(
         meta=get_meta(is_sidereal=False, sidereal_mode=None),
-        data=SynodicEventSchema(p1=p1.name, p2=p2.name, time=event_time.dt, angle=angle),
+        data=SynodicEventSchema(
+            p1=res["p1"], p2=res["p2"], time=res["time"], angle=res["target_angle"]
+        ),
     )
 
 
@@ -98,17 +102,18 @@ async def get_indicators(
     Generate planetary indicator set for a specific moment.
     """
     t = Time(time)
+    context = create_default_context()
+    quant_service = ResearchQuantService(context, ephemeris=ephemeris)
 
     if not planets:
-        # Use members directly for defaults
         planets = [Planet.SUN, Planet.MOON, Planet.MERCURY, Planet.VENUS, Planet.MARS]
 
     # Calculate indicators
     res_dict: dict[str, float] = {}
     for p in planets:
-        metrics = quant_service.calculate_velocity_metrics(p, t)
-        res_dict[f"{p.name}_velocity"] = metrics.relative_speed
-        res_dict[f"{p.name}_acceleration"] = metrics.speed_roc
+        metrics = quant_service.get_velocity_signals(p, t)
+        res_dict[f"{p.name}_velocity"] = metrics.speed
+        res_dict[f"{p.name}_acceleration"] = metrics.acceleration
 
     return AstroIndicatorResponse(
         meta=get_meta(is_sidereal=False, sidereal_mode=None),

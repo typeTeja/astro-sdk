@@ -10,6 +10,9 @@ from ...schemas.astro import PlanetPositionData
 from ...schemas.charts import NatalChartRequest
 from ...schemas.transits import SecondaryProgressionData, SecondaryProgressionResponse
 from ...services.western import WesternProgressionService
+from ...services.western.chart_service import WesternChartService
+from ...services.western.aspect_service import WesternAspectService
+from ...contexts.factories import create_default_context
 from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
@@ -99,37 +102,39 @@ async def get_progression_aspects(
     Scans the progressed state against the natal chart structure.
     Returns domain transit aspects mapping progressed planets.
     """
-    from ...engine.chart_engine import ChartEngine
-    chart_engine = ChartEngine()
-    transit_service = TransitService(ephemeris)
+    t_birth = Time(request.time.time)
+    t_target = Time(target_date)
+    
+    context = create_default_context()
+    context.zodiac.is_sidereal = True
+    context.zodiac.sidereal_mode = sidereal_mode
+    
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
+    progression_service = WesternProgressionService(context, ephemeris=ephemeris)
+    aspect_service = WesternAspectService(context)
+    
+    # 1. Native Natal Chart
+    natal_chart = chart_service.create_chart(t_birth, request.location.latitude, request.location.longitude)
+    
+    # 2. Progressed Chart
+    prog_chart = progression_service.calculate_secondary_progression(t_birth, t_target)
+    
+    # 3. Aspects (Progressed to Natal)
+    # We compare progressed planets (Points) vs natal planets (Points)
+    aspects = aspect_service.calculate_aspects(prog_chart.planets, natal_chart.planets)
 
-    # 1. Native Chart
-    natal_chart = chart_engine.create_chart(
-        Time(request.time.time),
-        request.location.latitude,
-        request.location.longitude,
-        sidereal_mode=sidereal_mode,
-    )
-
-    natal_data = [
-        PlanetPositionData(
-            planet=p.planet.name,
-            longitude=p.longitude, latitude=p.latitude, distance=p.distance,
-            speed_long=p.speed_long, is_retrograde=p.is_retrograde, sign=p.sign + 1,
-            sign_name=PlanetPositionData.get_sign_name(p.longitude),
-        ) for p in natal_chart.planets
+    mapped_aspects = [
+        TransitAspectSchema(
+            p1=a.p1.name,
+            p2=a.p2.name,
+            aspect_type=a.type,
+            orb=a.orb,
+            time=t_target.dt
+        )
+        for a in aspects
     ]
 
-    # 2. Progression Target Date
-    prog = progression_service.calculate_secondary_progression(
-        Time(request.time.time), Time(target_date), sidereal_mode=sidereal_mode
-    )
-
-    # Note: We bypass calculating transits dynamically because `calculate_transit_aspects`
-    # computes the sweeping transit time itself. To force a check of *progressed* planets vs *natal*,
-    # we would do a standard AspectService evaluation of two distinct sets, or just return the scaffold.
-    # For architectural parity, we return the scaffold here.
     return TransitScanResponse(
         meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode),
-        data=TransitScanData(time=target_date, aspects=[]),
+        data=TransitScanData(time=target_date, aspects=mapped_aspects),
     )

@@ -6,15 +6,14 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Query
 
 from ...core.constants import Planet
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.horizon import RiseSetResponse, RiseSetSchema, TwilightResponse, TwilightSchema
-from ...services.horizon_service import HorizonService
+from ...services.astronomy.horizon_service import AstronomyHorizonService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-horizon_service = HorizonService(ephemeris)
 
 
 @router.get(
@@ -34,10 +33,12 @@ async def get_rise_set(
     at a given geographic location.
     """
     t = Time(time)
+    context = create_default_context()
+    horizon_service = AstronomyHorizonService(context, ephemeris=ephemeris)
 
-    rise_time = horizon_service.calculate_event(planet, t, latitude, longitude, altitude, is_rise=True)
-    set_time = horizon_service.calculate_event(planet, t, latitude, longitude, altitude, is_rise=False)
-    transit_time = horizon_service.calculate_transit(planet, t, latitude, longitude, altitude)
+    rise_time = horizon_service.get_horizon_event(planet, t, latitude, longitude, altitude, is_rise=True)
+    set_time = horizon_service.get_horizon_event(planet, t, latitude, longitude, altitude, is_rise=False)
+    transit_time = horizon_service.get_transit(planet, t, latitude, longitude, altitude)
 
     data = RiseSetSchema(
         planet=planet.name,
@@ -64,7 +65,9 @@ async def get_twilight(
     Calculate dawn and dusk for a given twilight type.
     """
     t = Time(time)
-    result = horizon_service.calculate_twilight(t, latitude, longitude, altitude, twilight_type)
+    context = create_default_context()
+    horizon_service = AstronomyHorizonService(context, ephemeris=ephemeris)
+    result = horizon_service.get_twilight(t, latitude, longitude, altitude, twilight_type)
 
     dawn = result["dawn"]
     dusk = result["dusk"]

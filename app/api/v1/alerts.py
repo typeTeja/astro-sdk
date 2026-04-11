@@ -14,7 +14,8 @@ from ...schemas.alerts import (
     AlertScanResponse,
     AlertScanResult,
 )
-from ...services.scanner_service import ScannerService
+from ...services.alerts.alert_scan_service import AlertScanService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
@@ -94,20 +95,18 @@ async def scan_alerts(
     Trigger a scan of all active rules within a given look-back window.
     """
     if background:
-        # Create a fresh isolated session for the background thread,
-        # session is attached to current request state. To be truly safe with SQLAlchemy/SQLModel:
-        # It's better to instantiate a new session inside the background task if it takes too long.
-        # But for this simple implementation:
         def bg_scan(w_days: float):
             from ...core.database import SessionLocal
             with SessionLocal() as bg_session:
-                scanner = ScannerService(bg_session, ephemeris)
+                context = create_default_context()
+                scanner = AlertScanService(context, bg_session, ephemeris)
                 scanner.scan_active_rules(w_days)
                 
         background_tasks.add_task(bg_scan, window_days)
         return {"meta": get_meta(is_sidereal=False, sidereal_mode=None).model_dump(), "data": {"status": "Accepted. Scanning running in background."}}
 
-    scanner = ScannerService(session, ephemeris)
+    context = create_default_context()
+    scanner = AlertScanService(context, session, ephemeris)
     results = scanner.scan_active_rules(window_days)
 
     # Map raw scanner output to AlertScanResult
@@ -115,11 +114,11 @@ async def scan_alerts(
     for r in results:
         mapped.append(
             AlertScanResult(
-                rule_id=r.get("rule_id", 0),
-                name=r.get("name", "Unknown"),
-                event=r.get("event", "Triggered"),
-                time=r.get("time"),
-                details=r.get("details", ""),
+                rule_id=r.id if hasattr(r, "id") else 0,
+                name=r.rule_name if hasattr(r, "rule_name") else "Unknown",
+                event=r.event_description if hasattr(r, "event_description") else "Triggered",
+                time=r.event_time if hasattr(r, "event_time") else datetime.now(),
+                details=str(r.data) if hasattr(r, "data") else "",
             )
         )
 

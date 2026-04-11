@@ -142,16 +142,23 @@ app.include_router(research.router, prefix="/api/v1/research", tags=["Research &
 app.include_router(cycles.router, prefix="/api/v1/cycles", tags=["Cycles & Composite"])
 app.include_router(projections.router, prefix="/api/v1/projections", tags=["Mathematical Projections"])
 
+# ---------------------------------------------------------------------------
+# API V2 (Native 2.0 Engine)
+# ---------------------------------------------------------------------------
+from .api.v2 import router as v2_router
+app.include_router(v2_router, prefix="/api/v2", tags=["V2 API"])
+
+
 @app.get("/", tags=["Health"])
 async def root() -> dict[str, str]:
     """
     Health check endpoint.
     """
-    return {"message": "AstroSDK Backend Platform is Online", "status": "ok"}
+    return {"message": "AstroSDK 2.0 Platform is Online", "status": "ok"}
 
 @app.get("/version", tags=["Health"])
 async def version() -> dict[str, str]:
     """
     Platform version check.
     """
-    return {"version": "1.5.2"}
+    return {"version": "2.0.0"}

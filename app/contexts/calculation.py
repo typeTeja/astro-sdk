@@ -24,3 +24,9 @@ class CalculationContext(BaseModel):
         """Return a stable payload for reproducibility metadata."""
 
         return self.model_dump(mode="json", exclude_none=True)
+
+    @property
+    def fingerprint(self) -> str:
+        """Calculate the deterministic fingerprint for this context."""
+        from ..core.fingerprint import calculation_fingerprint
+        return calculation_fingerprint(self.fingerprint_payload())

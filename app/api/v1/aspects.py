@@ -6,14 +6,14 @@ from ...core.constants import Planet, SiderealMode
 from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.transits import TransitAspectSchema, TransitScanData, TransitScanResponse
-from ...engine.chart_engine import ChartEngine
+from ...services.western.chart_service import WesternChartService
 from ...services.western import WesternAspectService
+from ...contexts.factories import create_default_context
 from ..common import build_western_chart_context, calculation_metadata
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-chart_engine = ChartEngine()
 
 
 @router.get(
@@ -46,19 +46,15 @@ async def get_aspects(
             Planet.PLUTO,
         ]
 
-    # 1. Calculate positions
-    chart = chart_engine.create_chart(t, lat=0, lon=0, sidereal_mode=sidereal_mode)
-
-    # 2. Filter requested planets
-    target_pos = [p for p in chart.planets if p.planet in planets]
-
-    context = build_western_chart_context(
-        sidereal_mode=sidereal_mode,
-        is_sidereal=True,
-        heliocentric=False,
-        capability="western.aspect",
-    )
+    context = create_default_context()
+    context.zodiac.is_sidereal = True
+    context.zodiac.sidereal_mode = sidereal_mode
+    
+    chart_service = WesternChartService(context, ephemeris=ephemeris)
     aspect_service = WesternAspectService(context)
+
+    # 1. Calculate positions
+    chart = chart_service.create_chart(t, lat=0, lon=0)
 
     # 3. Scan
     matches = aspect_service.calculate_aspects(

@@ -1,0 +1,304 @@
+AstroSDK 2.0 Roadmap
+
+AstroSDK 2.0 should aim to become a long-lived astrology engine platform, not just a larger API. The core idea is simple: make the internal calculation model stable enough that you can keep adding real-world astrology systems for years without the codebase collapsing under its own weight.
+
+North Star
+Build AstroSDK as:
+
+a deterministic astronomy + astrology engine
+a backend usable by web, mobile, and desktop apps
+a platform that supports multiple traditions cleanly
+a system where every result is reproducible, typed, and auditable
+Phase 1: Stabilize The Core
+Before adding lots of new features, lock down the engine contracts.
+
+Goals:
+
+make tropical/sidereal, geo/helio/topocentric behavior explicit everywhere
+unify Swiss Ephemeris global-state handling
+finish the domain model for core event/result types
+remove “looks complete but is stubbed” API behavior
+Key work:
+
+Create strict calculation context objects:
+CalculationContext
+CoordinateContext
+ZodiacContext
+ObserverContext
+Pass context objects through services instead of loose flags.
+Make every service return domain objects only.
+Move all API mapping logic to routers/schema adapters.
+Introduce feature maturity tags internally:
+experimental
+beta
+production
+Add a capability registry so the API can expose what is truly supported.
+Result:
+
+a safer core engine
+fewer hidden mode bugs
+easier future expansion
+Phase 2: Redesign Around Feature Modules
+Move from “many endpoints” to “well-defined feature domains.”
+
+Recommended top-level module split:
+
+core
+ephemeris, locks, time, constants, errors
+domain
+immutable value objects and enums
+contexts
+calculation settings and environment
+services/astronomy
+raw positions, houses, eclipses, rise/set, fixed stars
+services/western
+natal, transits, progressions, directions, returns, synastry
+services/vedic
+nakshatras, panchanga, vargas, dashas, yogas, ashtakavarga, shadbala
+services/mundane
+ingresses, eclipse cycles, event scanning, geopolitical timing
+services/research
+exports, batch scans, datasets, statistical windows
+engine
+orchestration/facades
+api
+versioned HTTP contracts only
+This makes the project easier to scale by school/system instead of by route count.
+
+Phase 3: Establish A Strong Domain Language
+If your goal is “all real-world astrology features,” the domain model must become much richer.
+
+Add first-class domain objects for:
+
+NakshatraPosition
+PadaPosition
+DashaPeriod
+VargaChart
+TransitWindow
+ReturnChart
+ProgressedChart
+DirectionEvent
+SynastryAspect
+CompositeChart
+ParanEvent
+DeclinationAspect
+FixedStarContact
+YogaHit
+AshtakavargaMatrix
+ShadbalaScore
+RectificationCandidate
+MundaneIngress
+ResearchSeries
+Also add enums for:
+
+event types
+zodiac systems
+aspect families
+house strategies
+chart types
+ayanamsas
+predictive methods
+school/tradition tags
+This is what gives the codebase long lifespan.
+
+Phase 4: Build A Plugin-Style Feature System
+Astrology is too broad to keep as one flat codebase forever.
+
+Create feature packs like:
+
+western-core
+vedic-core
+research-tools
+mundane-tools
+financial-timing
+fixed-stars
+rectification
+Each feature pack should define:
+
+services
+supported calculation contexts
+API exposure
+maturity level
+test suite
+docs/examples
+This helps you grow without turning the repo into one giant service folder.
+
+Phase 5: Version The Public Contracts
+Astrology apps live or die on trust. Breaking calculations silently is dangerous.
+
+Do this:
+
+keep /api/v1 stable
+build /api/v2 only when the internal contracts are stronger
+add versioned response metadata
+include calculation fingerprints in responses
+preserve backward compatibility where possible
+Every response should include:
+
+zodiac type
+ayanamsa
+coordinate system
+observer/location basis
+house system
+time basis
+engine version
+feature maturity
+calculation fingerprint/hash
+That makes results reproducible across years.
+
+Phase 6: Expand Feature Coverage In A Smart Order
+Don’t add everything randomly. Build in layers.
+
+Recommended order:
+
+Core reliability
+positions
+houses
+aspects
+transits
+ingresses
+stations
+eclipses
+returns
+Western advanced
+synastry
+composite
+secondary progressions
+solar arc directions
+primary directions
+harmonics
+midpoint trees
+Vedic advanced
+nakshatras
+vargas
+vimshottari dasha
+yogas
+ashtakavarga
+shadbala
+divisional strength logic
+Specialized systems
+parans
+declination/parallels
+fixed stars
+heliacal phenomena
+mundane astrology
+financial timing research
+Expert workflows
+chart rectification
+batch historical scans
+correlation datasets
+alert automation
+research notebooks/data exports
+Phase 7: Scalability Architecture
+For web/mobile/desktop clients, the backend should scale horizontally.
+
+Recommended runtime shape:
+
+FastAPI app for synchronous request APIs
+worker queue for heavy scans/exports
+shared ephemeris data files in predictable paths
+cache only deterministic results
+use multiple processes rather than trusting threads too much around Swiss Ephemeris
+Suggested infrastructure split:
+
+API service
+scan/research worker
+alerts/automation worker
+database for jobs, alerts, saved charts
+object/file storage for research exports
+Important:
+Swiss Ephemeris means horizontal scaling is safer than trying to over-thread one process.
+
+Phase 8: Data And Persistence Strategy
+Keep the engine stateless where possible, but persist user/workflow entities.
+
+Persist:
+
+saved charts
+alert rules
+user calculation presets
+research jobs
+exports
+feature flags
+audit logs for long-running scans
+Do not persist:
+
+derived engine state that should be recomputed deterministically
+This keeps trust high.
+
+Phase 9: Testing Strategy For A 10-Year Project
+If you want long lifespan, testing becomes part of the architecture.
+
+You need:
+
+unit tests for domain math
+regression fixtures for known charts/events
+cross-ayanamsa tests
+tropical vs sidereal parity tests
+geocentric vs heliocentric tests
+topocentric tests
+historical event validation tests
+performance tests for long scans
+contract tests for API responses
+Also build a golden dataset suite:
+
+known eclipses
+known ingresses
+known stations
+famous natal charts
+Vedic examples
+fixed-star contacts
+return chart cases
+That suite will protect you when AstroSDK gets big.
+
+Phase 10: Product Surface
+AstroSDK 2.0 should support three outputs:
+
+API
+for web/mobile/desktop apps
+Python SDK
+for analysts, researchers, notebooks, quant workflows
+Internal engine adapters
+for future desktop/mobile packaging if you ever want offline tools
+This makes the project much more durable than “just a FastAPI backend.”
+
+Recommended 12-Month Execution Plan
+
+Quarter 1
+
+stabilize contexts and mode handling
+clean service boundaries
+remove misleading stub endpoints
+improve type safety
+define feature maturity system
+Quarter 2
+
+add domain objects for returns, transit windows, nakshatras, vargas
+split services into western/vedic/research domains
+start /api/v2 design
+add calculation fingerprinting
+Quarter 3
+
+implement advanced Western modules
+implement advanced Vedic modules
+build capability registry
+add async jobs for heavy scans
+Quarter 4
+
+research/export engine
+alert automation system
+plugin-style feature packs
+full docs and example datasets
+My recommended AstroSDK 2.0 principles
+
+correctness over feature count
+engine first, API second
+explicit contexts everywhere
+immutable domain objects
+no silent mode switching
+feature maturity must be visible
+every result should be reproducible
+separate astronomy facts from astrology derivations
+separate astrology derivations from interpretations
+Blunt opinion
+If you want “all real-world astrology features,” AstroSDK 2.0 should become a platform with modules, contexts, and capability boundaries, not just a bigger list of endpoints. That’s the difference between a project that grows for 2 years and one that survives for 10.

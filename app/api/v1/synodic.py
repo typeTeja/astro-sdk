@@ -7,15 +7,14 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Query
 
 from ...core.constants import Planet
-from ...core.ephemeris import Ephemeris
 from ...core.time import Time
 from ...schemas.synodic import SynodicConjunctionResponse, SynodicConjunctionSchema
-from ...services.synodic_service import SynodicService
+from ...services.astronomy.synodic_service import AstronomySynodicService
+from ...contexts.factories import create_default_context
 from .meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
-synodic_service = SynodicService(ephemeris)
 
 
 @router.get(
@@ -47,21 +46,22 @@ async def get_next_synodic(
     - 60° = Sextile
     """
     t_start = Time(start_time)
+    context = create_default_context()
+    synodic_service = AstronomySynodicService(context, ephemeris=ephemeris)
     result = synodic_service.find_next_event(p1, p2, t_start, target_angle, max_days)
 
-    if result is None:
+    if not result:
         return SynodicConjunctionResponse(
             meta=get_meta(is_sidereal=False, sidereal_mode=None),
             data=None,  # type: ignore[arg-type]
         )
 
-    event_time, angle = result
     data = SynodicConjunctionSchema(
-        p1=p1.name,
-        p2=p2.name,
-        target_angle=target_angle,
-        time=event_time.dt,
-        julian_day=event_time.julian_day,
+        p1=result["p1"],
+        p2=result["p2"],
+        target_angle=result["target_angle"],
+        time=result["time"],
+        julian_day=Time(result["time"]).julian_day,
     )
     return SynodicConjunctionResponse(
         meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data

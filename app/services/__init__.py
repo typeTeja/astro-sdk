@@ -1,4 +1,7 @@
-from ..engine.chart_engine import ChartEngine as ChartEngine
-from .event_service import EventService as EventService
-from .natal_service import NatalService as NatalService
-from .quant_service import AstroQuantService as AstroQuantService
+# AstroSDK 2.0 Native Services
+from . import astronomy
+from . import western
+from . import vedic
+from . import mundane
+from . import research
+from . import alerts
