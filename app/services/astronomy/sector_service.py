@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.contexts import CalculationContext
 from app.core.constants import HouseSystem, Planet
 from app.core.ephemeris import Ephemeris
@@ -14,17 +16,17 @@ class AstronomySectorService:
         self._eph = ephemeris or Ephemeris()
 
     def get_sectors(
-        self, 
-        time: Time, 
-        lat: float, 
-        lon: float, 
+        self,
+        time: Time,
+        lat: float,
+        lon: float,
         num_sectors: int = 36
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Calculate the sector position for all major planets using the diurnal cycle.
         """
         from app.core.ephemeris_context import EphemerisContext
-        
+
         # Geocentric scanning
         with EphemerisContext(topo=None):
             axes = self._eph.calculate_houses(time.julian_day, lat, lon, HouseSystem.PLACIDUS)
@@ -41,7 +43,7 @@ class AstronomySectorService:
                 p_pos = self._eph.calculate_planet(time.julian_day, p, sidereal=False)
                 dist_asc = (asc - p_pos["longitude"]) % 360
                 sector_num = int(dist_asc / (360.0 / num_sectors)) + 1
-                
+
                 results.append({
                     "planet": p.name,
                     "sector": sector_num,
@@ -52,5 +54,5 @@ class AstronomySectorService:
                         fingerprint=self.context.fingerprint
                     )
                 })
-            
+
             return results

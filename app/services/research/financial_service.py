@@ -1,11 +1,8 @@
-from datetime import timedelta
-from typing import Any
 from app.contexts import CalculationContext
 from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.domain.research.financial import TimeWindow
-from app.domain.common.metadata import DomainMetadata
 
 
 class ResearchFinancialService:
@@ -17,9 +14,9 @@ class ResearchFinancialService:
         self._eph = ephemeris or Ephemeris()
 
     def get_time_windows(
-        self, 
-        start_time: Time, 
-        end_time: Time, 
+        self,
+        start_time: Time,
+        end_time: Time,
         planets: list[Planet] | None = None
     ) -> list[TimeWindow]:
         """
@@ -27,7 +24,7 @@ class ResearchFinancialService:
         """
         from app.services.mundane.station_service import MundaneStationService
         station_service = MundaneStationService(self.context, ephemeris=self._eph)
-        
+
         windows: list[TimeWindow] = []
 
         if not planets:
@@ -41,9 +38,9 @@ class ResearchFinancialService:
             # Look backwards and forwards to catch active retrogrades
             scan_start = Time.from_julian_day(start_time.julian_day - 180)
             scan_end = Time.from_julian_day(end_time.julian_day + 180)
-            
+
             stations = station_service.scan_stations(planet, scan_start, scan_end)
-            
+
             # Map stations to contiguous windows
             for i in range(len(stations)):
                 if stations[i].station_type == "RETROGRADE":
@@ -54,7 +51,7 @@ class ResearchFinancialService:
                         if stations[j].station_type == "DIRECT":
                             r_end = stations[j].time
                             break
-                    
+
                     if r_end:
                         # Check overlap with requested window
                         req_start = start_time.dt

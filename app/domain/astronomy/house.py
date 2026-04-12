@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.core.constants import HouseSystem, ZodiacSign
+from app.domain.common.metadata import DomainMetadata
 
 
 @dataclass(frozen=True)
@@ -27,3 +28,4 @@ class ChartHouses:
     system: HouseSystem
     cusps: list[HouseCusp]
     axes: HouseAxes
+    metadata: DomainMetadata

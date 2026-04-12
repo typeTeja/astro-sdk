@@ -2,11 +2,12 @@
 /api/v2/astro — System settings and global generic Astro variables.
 """
 from typing import Any
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.schemas.base import AstroSettings, BaseAstroResponse
 from app.api.v2.meta import get_meta
+from app.schemas.base import AstroSettings, BaseAstroResponse
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ class SettingsResponse(BaseAstroResponse[AstroSettings]):
 
 
 @router.get("/ephemeris-status", summary="Check ephemeris loaded state")
-async def get_ephemeris_status() -> dict[str, Any]:
+def get_ephemeris_status() -> dict[str, Any]:
     return {
         "meta": get_meta().model_dump(),
         "data": {"status": "online", "loaded": True},
@@ -24,7 +25,7 @@ async def get_ephemeris_status() -> dict[str, Any]:
 
 
 @router.get("/settings", response_model=SettingsResponse)
-async def get_settings() -> SettingsResponse:
+def get_settings() -> SettingsResponse:
     """
     Returns the default baseline AstroSettings dictating the global environment.
     """
@@ -41,10 +42,10 @@ class SettingsValidationResponse(BaseAstroResponse[SettingsValidationData]):
     pass
 
 @router.post("/settings", response_model=SettingsValidationResponse)
-async def validate_settings(settings: AstroSettings) -> SettingsValidationResponse:
+def validate_settings(settings: AstroSettings) -> SettingsValidationResponse:
     """
     Accepts an AstroSettings payload.
-    Since backend is stateless, this serves strictly as payload validation 
+    Since backend is stateless, this serves strictly as payload validation
     and normalization before downstream execution. Does not store to SQLite.
     """
     data = SettingsValidationData(valid=True, normalized=settings)

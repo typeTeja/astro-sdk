@@ -5,5 +5,5 @@ from app.domain.common.metadata import DomainMetadata
 
 @dataclass(frozen=True)
 class AshtakavargaMatrix:
-    values: dict[str, list[int]]
+    matrix: list[int]
     metadata: DomainMetadata

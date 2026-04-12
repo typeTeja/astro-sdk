@@ -1,37 +1,34 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.core.constants import Planet, SiderealMode
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
+from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.schemas.events import IngressResponse, IngressSchema, RetrogradeResponse, RetrogradeSchema
 from app.services.mundane.ingress_service import MundaneIngressService
 from app.services.mundane.station_service import MundaneStationService
-from app.contexts.factories import create_default_context
-from app.api.v2.meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
 
 
 @router.get("/ingresses", response_model=IngressResponse, summary="Get sign ingresses for a planet")
-async def get_ingresses(
+def get_ingresses(
     planet: Planet,
-    start_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    start_time: datetime = Query(...),
     end_time: datetime | None = Query(None),
-    sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> IngressResponse:
     """
     Search for sign boundary crossings (0° sign entry) for a planet.
     """
     t_start = Time(start_time)
     t_end = Time(end_time) if end_time else Time(start_time + timedelta(days=365))
-    
-    context = create_default_context()
-    context.zodiac.sidereal_mode = sidereal_mode
-    context.zodiac.zodiac = "sidereal"
-    
+
     ingress_service = MundaneIngressService(context, ephemeris=ephemeris)
     events = ingress_service.scan_ingresses(planet, t_start, t_end)
 
@@ -40,22 +37,28 @@ async def get_ingresses(
         IngressSchema(
             planet=e.planet.name,
             time=e.time,
-            from_sign=str(e.sign_from),
-            to_sign=str(e.sign_to),
+            from_sign=e.from_sign,
+            to_sign=e.to_sign,
         )
         for e in events
     ]
 
     return IngressResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=ingresses
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="mundane.ingresses"
+        ),
+        data=ingresses
     )
 
 
 @router.get("/retrogrades", response_model=RetrogradeResponse, summary="Get planetary stations")
-async def get_retrogrades(
+def get_retrogrades(
     planet: Planet,
-    start_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    start_time: datetime = Query(...),
     end_time: datetime | None = Query(None),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> RetrogradeResponse:
     """
     Search for planetary stations (turning Direct or Retrograde).
@@ -64,9 +67,8 @@ async def get_retrogrades(
     t_end = Time(end_time) if end_time else Time(start_time + timedelta(days=365))
 
     if planet in [Planet.SUN, Planet.MOON]:
-        return RetrogradeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=[])
+        return RetrogradeResponse(meta=get_meta(is_sidereal=context.zodiac.is_sidereal, sidereal_mode=context.zodiac.sidereal_mode), data=[])
 
-    context = create_default_context()
     station_service = MundaneStationService(context, ephemeris=ephemeris)
     events = station_service.scan_stations(planet, t_start, t_end)
 
@@ -80,4 +82,11 @@ async def get_retrogrades(
         for e in events
     ]
 
-    return RetrogradeResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=stations)
+    return RetrogradeResponse(
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="mundane.stations"
+        ),
+        data=stations
+    )

@@ -7,6 +7,17 @@ from .astro import PlanetPositionData
 from .base import AstroTimeInput, BaseAstroResponse, GeographicLocation
 
 
+from app.core.constants import HouseSystem, SiderealMode
+
+class ChartSettings(BaseModel):
+    """
+    Strict configuration schema for chart generation.
+    """
+    house_system: HouseSystem | None = Field(default=None, description="House division system (e.g. W, P)")
+    is_sidereal: bool | None = Field(default=None, description="Use sidereal zodiac (True) or tropical (False)")
+    sidereal_mode: SiderealMode | None = Field(default=None, description="Ayanamsa system enum (e.g. LAHIRI)")
+
+
 class NatalChartRequest(BaseModel):
     """
     Standard request for a 12-house natal chart.
@@ -14,7 +25,7 @@ class NatalChartRequest(BaseModel):
 
     time: AstroTimeInput
     location: GeographicLocation
-    settings: dict[str, Any] | None = None
+    settings: ChartSettings | None = Field(default=None)
 
 
 class NatalChartData(BaseModel):
@@ -32,7 +43,7 @@ class NatalChartResponse(BaseAstroResponse[NatalChartData]):
     pass
 
 
-class PanchangaData(BaseModel):
+class PanchangaDataSchema(BaseModel):
     """
     Standard 5 elements of Vedic time calculation.
     """
@@ -46,7 +57,7 @@ class PanchangaData(BaseModel):
     sunset: datetime
 
 
-class PanchangaResponse(BaseAstroResponse[PanchangaData]):
+class PanchangaResponse(BaseAstroResponse[PanchangaDataSchema]):
     pass
 
 

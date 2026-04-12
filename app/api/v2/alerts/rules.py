@@ -1,9 +1,12 @@
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlmodel import Session, select
 
-from app.core.database import get_session
+from app.api.v2.meta import get_meta
+from app.contexts.factories import create_default_context
+from app.core.database import engine, get_session
 from app.core.ephemeris import Ephemeris
 from app.models.alerts import AlertRule
 from app.schemas.alerts import (
@@ -15,15 +18,13 @@ from app.schemas.alerts import (
     AlertScanResult,
 )
 from app.services.alerts.alert_scan_service import AlertScanService
-from app.contexts.factories import create_default_context
-from app.api.v2.meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
 
 
 @router.post("/rules", response_model=AlertRuleResponse, summary="Create a new alert rule")
-async def create_rule(
+def create_rule(
     rule_in: AlertRuleCreate, session: Annotated[Session, Depends(get_session)]
 ) -> AlertRuleResponse:
     """
@@ -59,7 +60,7 @@ async def create_rule(
 
 
 @router.get("/rules", response_model=AlertRuleListResponse, summary="List all alert rules")
-async def get_rules(session: Annotated[Session, Depends(get_session)]) -> AlertRuleListResponse:
+def get_rules(session: Annotated[Session, Depends(get_session)]) -> AlertRuleListResponse:
     """
     Retrieve all active/inactive alert rules from persistence.
     """
@@ -82,26 +83,26 @@ async def get_rules(session: Annotated[Session, Depends(get_session)]) -> AlertR
     return AlertRuleListResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
 
 
-from fastapi import BackgroundTasks
+
+
 
 @router.post("/scan", summary="Run manual scan for triggers")
-async def scan_alerts(
+def scan_alerts(
     background_tasks: BackgroundTasks,
     session: Annotated[Session, Depends(get_session)],
     window_days: float = Query(1.0, ge=0.1, le=365.0),
     background: bool = Query(False, description="Run scan silently in background to avoid blocking"),
-) -> dict | AlertScanResponse:
+) -> dict[str, Any] | AlertScanResponse:
     """
     Trigger a scan of all active rules within a given look-back window.
     """
     if background:
-        def bg_scan(w_days: float):
-            from app.core.database import SessionLocal
-            with SessionLocal() as bg_session:
+        def bg_scan(w_days: float) -> None:
+            with Session(engine) as bg_session:
                 context = create_default_context()
                 scanner = AlertScanService(context, bg_session, ephemeris)
                 scanner.scan_active_rules(w_days)
-                
+
         background_tasks.add_task(bg_scan, window_days)
         return {"meta": get_meta(is_sidereal=False, sidereal_mode=None).model_dump(), "data": {"status": "Accepted. Scanning running in background."}}
 
@@ -125,7 +126,7 @@ async def scan_alerts(
     return AlertScanResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=mapped)
 
 @router.delete("/{rule_id}", summary="Delete an alert rule")
-async def delete_rule(
+def delete_rule(
     rule_id: int, session: Annotated[Session, Depends(get_session)]
 ) -> dict[str, str]:
     """
@@ -135,7 +136,7 @@ async def delete_rule(
     if not rule:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Rule not found")
-        
+
     session.delete(rule)
     session.commit()
     return {"status": "success", "message": f"Rule {rule_id} deleted."}

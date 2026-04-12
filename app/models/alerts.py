@@ -1,3 +1,4 @@
+from app.core.clock import get_current_time
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -29,5 +30,5 @@ class AlertRule(SQLModel, table=True):
 
     webhook_url: str | None = Field(None)
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=get_current_time)
     last_triggered: datetime | None = Field(None)

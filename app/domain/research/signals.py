@@ -1,16 +1,17 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
+
 from app.domain.common.metadata import DomainMetadata
 
 
 @dataclass(frozen=True)
- AidenIntensityRecord: # Using a fresh name to avoid confusion
+class AidenIntensityRecord:
     time: datetime
     score: float
     active_aspects_count: int
+    metadata: DomainMetadata
     top_contributors: list[dict[str, Any]] = field(default_factory=list)
-    metadata: DomainMetadata = field(default_factory=DomainMetadata)
 
 
 @dataclass(frozen=True)
@@ -24,5 +25,5 @@ class StellarCluster:
 class ClusterIndexRecord:
     time: datetime
     stellar_density_score: float
+    metadata: DomainMetadata
     clusters: list[StellarCluster] = field(default_factory=list)
-    metadata: DomainMetadata = field(default_factory=DomainMetadata)

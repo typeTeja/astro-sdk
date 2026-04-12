@@ -1,40 +1,62 @@
-# AstroSDK 2.0
-**Enterprise-Scale Deterministic Astrology API Platform**
+# AstroSDK 2.0: Professional Astrology Engine
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+AstroSDK 2.0 is a deterministic, professional-grade astronomical calculation engine designed for research, financial astrology, and enterprise applications. Built on the Swiss Ephemeris and NASA JPL data, it provides sub-arc-second precision with a modern, context-aware architecture.
 
-AstroSDK 2.0 is a complete graduation of the platform into a high-concurrency, stateless microservice architecture. It provides deterministic astronomical calculations powered by the **Swiss Ephemeris** for research, financial analysis, and enterprise-grade data science.
+## 🚀 2.0 Key Features
 
-## 🌌 2.0 Architecture
-The 2.0 era introduces a strictly namespaced service layer and a context-driven calculation engine.
+- **Service-First Architecture**: Use the core engine directly via Python Services or through the high-performance FastAPI V2 namespace.
+- **Context-Aware Determinism**: Every calculation is governed by a `CalculationContext`, ensuring results are reproducible across any environment.
+- **Surface Geometry**: Native support for **Topocentric** (observer-based) and **Heliocentric** (Sun-centered) coordinate systems.
+- **Global Precision**: Verified against NASA JPL DE431/DE432 ephemeris files.
 
-### Core Modules (`/api/v2/*`)
-- **`/astronomy`**: High-precision coordinates, lunar cycles, and horizon events.
-- **`/western`**: Comprehensive natal, transit, progression, and synastry modeling.
-- **`/vedic`**: Native support for Dashas, Panchanga, Ashtakavarga, and Shadbala.
-- **`/mundane`**: Global event scanning, ingresses, and planetary stations.
-- **`/research`**: Quantitative signals, financial correlations, and batch data export.
+## 🛠 Installation
 
-## 🚀 Quick Start
-
-### Installation
 ```bash
 pip install -r requirements.txt
 pip install -e .
 ```
 
-### Launch Server
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+Requires high-precision ephemeris data path to be set via `SE_EPHE_PATH` environment variable.
+
+## 🚦 Quickstart (Python Service)
+
+```python
+from app.services.astronomy.planetary_service import AstronomyPlanetaryService
+from app.contexts.factories import create_default_context
+from app.core.time import Time
+from datetime import datetime
+
+# 1. Build context
+ctx = create_default_context()
+ctx.coordinate.system = "topocentric"
+ctx.observer.latitude = 51.5074  # London
+ctx.observer.longitude = -0.1278
+
+# 2. Run high-precision service
+time = Time(datetime.now())
+service = AstronomyPlanetaryService(ctx)
+positions = service.calculate_positions(time) 
 ```
-Interactive documentation is available at `http://localhost:8000/docs`.
+
+## 🎯 Development Status
+
+- [x] **Natal/Transit Core**: High-precision calculation engine (2.0)
+- [x] **Vedic Hub**: Panchanga and Yoga elements (2.0)
+- [x] **Research Layer**: Financial, Mundane, and Quant signals (2.0) - **GRADUATED**
+- [ ] **ML Bridge**: Feature extraction for predictive modeling (In-Progress)
+
+## 📖 Documentation
+
+- [API Reference](docs/API_REFERENCE.md) - Context-aware endpoints and header spec.
+- [Practical Examples](docs/EXAMPLES_2.0.md) - Common cURL scenarios for 2.0.
+- [Walkthrough & Verification](walkthrough.md) - Deep dive into 2.0 graduation.
 
 ## 🧪 Testing
-AstroSDK 2.0 maintains a 100% deterministic standard.
-```bash
-python3 -m pytest tests/ -v
-```
 
----
-**Built with precision. Scaled for Enterprise Architecture.**
+AstroSDK 2.0 maintains 100% verification for core astronomical benchmarks.
+
+```bash
+export PYTHONPATH=$PYTHONPATH:.
+pytest tests/regression/test_data_integrity.py -v
+pytest tests/api/test_v2_smoke.py -v
+```

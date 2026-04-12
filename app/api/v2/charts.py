@@ -1,61 +1,61 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.api.common import build_western_chart_context, calculation_metadata
-from app.core.constants import HouseSystem, SiderealMode
+from app.api.common import calculation_metadata
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
+from app.core.constants import HouseSystem
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
+from app.contexts.zodiac import ZodiacType
 from app.schemas.astro import PlanetPositionData
 from app.schemas.charts import (
     NatalChartData,
     NatalChartRequest,
     NatalChartResponse,
-    PanchangaData,
+    PanchangaDataSchema,
     PanchangaResponse,
     TransitChartData,
     TransitChartResponse,
 )
 from app.services.vedic.panchanga_service import VedicPanchangaService
 from app.services.western import WesternChartService
-from app.api.v2.meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
 
 
 @router.post("/natal", response_model=NatalChartResponse, summary="Generate full natal chart")
-async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
+def create_natal_chart(
+    request: NatalChartRequest,
+    context: CalculationContext = Depends(get_calculation_context)
+) -> NatalChartResponse:
     """
     Generate planetary positions, house cusps, and axes for a birth moment.
     """
     t = Time(request.time.time)
 
-    # Resolve settings with defaults
-    house_sys = HouseSystem.PLACIDUS
-    sidereal_mode = SiderealMode.LAHIRI
-    is_sidereal = True
-    heliocentric = False
+    # 2.0 High-Level Priority: Headers > Body Settings
+    # If the context didn't get values from headers/query, we fallback to body
+    if context.observer is None or (context.observer.latitude == 0.0 and context.observer.longitude == 0.0):
+        from app.contexts.observer import ObserverContext
+        context.observer = ObserverContext(
+            latitude=request.location.latitude,
+            longitude=request.location.longitude,
+            altitude=request.location.altitude or 0.0
+        )
 
+    # 2.0 Mapping: Override Context with ChartSettings payload
     if request.settings:
-        if "house_system" in request.settings:
-            house_sys = HouseSystem(request.settings["house_system"])
-        if "sidereal_mode" in request.settings:
-            sidereal_mode = SiderealMode(request.settings["sidereal_mode"])
-        if "is_sidereal" in request.settings:
-            is_sidereal = bool(request.settings["is_sidereal"])
-        if "heliocentric" in request.settings:
-            heliocentric = bool(request.settings["heliocentric"])
+        if request.settings.house_system:
+            context.house.system = request.settings.house_system
+        if request.settings.is_sidereal is not None:
+            context.zodiac.zodiac = ZodiacType.SIDEREAL if request.settings.is_sidereal else ZodiacType.TROPICAL
+        if request.settings.sidereal_mode:
+            context.zodiac.sidereal_mode = request.settings.sidereal_mode
 
-    context = build_western_chart_context(
-        house_system=house_sys,
-        sidereal_mode=sidereal_mode,
-        is_sidereal=is_sidereal,
-        heliocentric=heliocentric,
-        latitude=request.location.latitude,
-        longitude=request.location.longitude,
-        altitude=request.location.altitude,
-    )
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     chart = chart_service.create_chart(
         t,
@@ -100,52 +100,38 @@ async def create_natal_chart(request: NatalChartRequest) -> NatalChartResponse:
 
     return NatalChartResponse(
         meta=get_meta(
-            is_sidereal=is_sidereal,
-            sidereal_mode=sidereal_mode,
-            heliocentric=heliocentric,
-            house_system=house_sys,
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            house_system=context.house.system,
             capability=calc_meta["capability"],
             feature_maturity=calc_meta["feature_maturity"],
             calculation_fingerprint=calc_meta["calculation_fingerprint"],
         ),
-        data=data,
+        data=data
     )
 
 
 @router.get("/transits", response_model=TransitChartResponse, summary="Get current transit chart")
-async def get_transit_chart(
-    time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
-    latitude: float = Query(0.0),
-    longitude: float = Query(0.0),
-    sidereal: bool = Query(True),
-    sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
-    heliocentric: bool = Query(False),
+def get_transit_chart(
+    time: datetime = Query(...),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> TransitChartResponse:
     """
     Calculate planetary positions for a given moment and location (Transit Chart).
     """
     t = Time(time)
-
-    context = build_western_chart_context(
-        house_system=HouseSystem.PLACIDUS,
-        sidereal_mode=sidereal_mode,
-        is_sidereal=sidereal,
-        heliocentric=heliocentric,
-        latitude=latitude,
-        longitude=longitude,
-    )
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     chart = chart_service.create_chart(
         t,
-        latitude,
-        longitude,
+        context.observer.latitude if context.observer else 0.0,
+        context.observer.longitude if context.observer else 0.0,
     )
     calc_meta = calculation_metadata(
         context,
         primary_inputs={
             "time": t.dt.isoformat(),
-            "latitude": latitude,
-            "longitude": longitude,
+            "latitude": context.observer.latitude if context.observer else 0.0,
+            "longitude": context.observer.longitude if context.observer else 0.0,
         },
     )
 
@@ -165,37 +151,35 @@ async def get_transit_chart(
 
     return TransitChartResponse(
         meta=get_meta(
-            is_sidereal=sidereal,
-            sidereal_mode=sidereal_mode,
-            heliocentric=heliocentric,
-            house_system=HouseSystem.PLACIDUS,
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            house_system=context.house.system,
             capability=calc_meta["capability"],
             feature_maturity=calc_meta["feature_maturity"],
             calculation_fingerprint=calc_meta["calculation_fingerprint"],
         ),
-        data=TransitChartData(planets=planets),
+        data=TransitChartData(planets=planets)
     )
 
 
 @router.get("/panchanga", response_model=PanchangaResponse, summary="Calculate Panchanga")
-async def get_panchanga(
-    latitude: float = Query(...),
-    longitude: float = Query(...),
-    time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+def get_panchanga(
+    time: datetime = Query(...),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> PanchangaResponse:
     """
     Calculate the five elements of the Vedic calendar (Tithi, Nakshatra, Yoga, Karana, Vara).
     """
     t = Time(time)
-    # Build a simple 2.0 context for this legacy endpoint
-    from app.contexts.factories import create_default_context
-    context = create_default_context()
-    context.zodiac.sidereal_mode = SiderealMode.LAHIRI
-    
-    pan_service = VedicPanchangaService(context, ephemeris=ephemeris)
-    results = pan_service.calculate_panchanga(t, latitude, longitude)
 
-    data = PanchangaData(
+    pan_service = VedicPanchangaService(context, ephemeris=ephemeris)
+    results = pan_service.calculate_panchanga(
+        t,
+        context.observer.latitude if context.observer else 0.0,
+        context.observer.longitude if context.observer else 0.0
+    )
+
+    data = PanchangaDataSchema(
         tithi=results.tithi,
         nakshatra=results.nakshatra,
         yoga=results.yoga,
@@ -206,5 +190,10 @@ async def get_panchanga(
     )
 
     return PanchangaResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=SiderealMode.LAHIRI), data=data
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="vedic.panchanga"
+        ),
+        data=data
     )

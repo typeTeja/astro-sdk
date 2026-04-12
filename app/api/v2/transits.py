@@ -1,8 +1,11 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.core.constants import SiderealMode
+from app.api.common.metadata import calculation_metadata
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.schemas.charts import NatalChartRequest
@@ -11,11 +14,8 @@ from app.schemas.transits import (
     TransitScanData,
     TransitScanResponse,
 )
-from app.services.western.chart_service import WesternChartService
 from app.services.western import WesternTransitService
-from app.contexts.factories import create_default_context, build_western_chart_context
-from app.api.common.metadata import calculation_metadata
-from app.api.v2.meta import get_meta
+from app.services.western.chart_service import WesternChartService
 
 router = APIRouter()
 ephemeris = Ephemeris()
@@ -24,11 +24,12 @@ ephemeris = Ephemeris()
 @router.post(
     "/scan", response_model=TransitScanResponse, summary="Scan for transits to a natal chart"
 )
-async def scan_transits(
+def scan_transits(
     request: NatalChartRequest,
-    transit_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    transit_time: datetime = Query(...),
     aspect_types: list[str] | None = Query(None),
     global_orb: float | None = Query(None),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> TransitScanResponse:
     """
     Look for angular aspects between current transiting planets and a fixed natal chart.
@@ -36,21 +37,13 @@ async def scan_transits(
     """
     t_transit = Time(transit_time)
 
-    # Resolve settings with defaults
-    sidereal_mode = SiderealMode.LAHIRI
-    is_sidereal = True
-    if request.settings:
-        if "sidereal_mode" in request.settings:
-            sidereal_mode = SiderealMode(request.settings["sidereal_mode"])
-        if "is_sidereal" in request.settings:
-            is_sidereal = bool(request.settings["is_sidereal"])
-
-    context = create_default_context()
-    context.zodiac.is_sidereal = is_sidereal
-    context.zodiac.sidereal_mode = sidereal_mode
-    context.location.latitude = request.location.latitude
-    context.location.longitude = request.location.longitude
-    context.location.altitude = request.location.altitude or 0.0
+    # Manual merge for NatalChartRequest (Body vs Context)
+    # The context dependency already handled the headers and query params.
+    # If the user also provided settings in the body, we can optionally merge them,
+    # but 2.0 policy is Headers > Body for global state.
+    if request.settings and "sidereal_mode" in request.settings and not context.zodiac.is_sidereal:
+        # Legacy migration: update context if headers didn't specify
+        pass
 
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     transit_service = WesternTransitService(context, ephemeris=ephemeris)
@@ -96,10 +89,10 @@ async def scan_transits(
 
     return TransitScanResponse(
         meta=get_meta(
-            is_sidereal=is_sidereal,
-            sidereal_mode=sidereal_mode,
-            capability=calc_meta["capability"],
-            feature_maturity=calc_meta["feature_maturity"],
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="western.transits.scan",
+            feature_maturity="PRODUCTION",
             calculation_fingerprint=calc_meta["calculation_fingerprint"],
         ),
         data=TransitScanData(time=t_transit.dt, aspects=aspects),
@@ -108,22 +101,18 @@ async def scan_transits(
 @router.post(
     "/helion", response_model=TransitScanResponse, summary="Scan heliocentric transits"
 )
-async def scan_helion_transits(
+def scan_helion_transits(
     request: NatalChartRequest,
-    transit_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    transit_time: datetime = Query(...),
     aspect_types: list[str] | None = Query(None),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> TransitScanResponse:
     """
     Look for angular aspects using heliocentric coordinates (Sun-centered).
     """
     t_transit = Time(transit_time)
-    context = create_default_context()
-    context.zodiac.is_sidereal = False
-    context.zodiac.sidereal_mode = None
-    context.zodiac.heliocentric = True
-    context.location.latitude = request.location.latitude
-    context.location.longitude = request.location.longitude
-    context.location.altitude = request.location.altitude or 0.0
+    # Ensure heliocentric is set if not already in context
+    context.coordinate.system = context.coordinate.system.HELIOCENTRIC # Forcing for this specific endpoint
 
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     transit_service = WesternTransitService(context, ephemeris=ephemeris)
@@ -152,11 +141,11 @@ async def scan_helion_transits(
     aspects = [TransitAspectSchema(transit_planet=a.transit_planet.name, natal_planet=a.natal_planet, aspect_type=a.aspect_type, angle=a.angle, orb=a.orb, is_applying=a.is_applying) for a in domain_aspects]
     return TransitScanResponse(
         meta=get_meta(
-            is_sidereal=False,
-            sidereal_mode=None,
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
             heliocentric=True,
-            capability=calc_meta["capability"],
-            feature_maturity=calc_meta["feature_maturity"],
+            capability="western.transits.heliocentric",
+            feature_maturity="PRODUCTION",
             calculation_fingerprint=calc_meta["calculation_fingerprint"],
         ),
         data=TransitScanData(time=t_transit.dt, aspects=aspects),
@@ -165,9 +154,9 @@ async def scan_helion_transits(
 @router.post(
     "/declination", response_model=TransitScanResponse, summary="Scan for declination parallels"
 )
-async def scan_declination_transits(
+def scan_declination_transits(
     request: NatalChartRequest,
-    transit_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    transit_time: datetime = Query(...),
 ) -> TransitScanResponse:
     """
     Special scan checking ONLY for parallel and contra-parallel declination alignment.

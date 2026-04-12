@@ -1,8 +1,8 @@
 from ..contexts.calculation import CalculationContext
-from .western import WesternModule
-from .vedic import VedicModule
 from .mundane import MundaneModule
 from .research import ResearchModule
+from .vedic import VedicModule
+from .western import WesternModule
 
 
 class AstroSDKClient:
@@ -13,7 +13,7 @@ class AstroSDKClient:
 
     def __init__(self, context: CalculationContext | None = None) -> None:
         self.context = context or CalculationContext()
-        
+
         # Initialize domains
         self.western = WesternModule(self.context)
         self.vedic = VedicModule(self.context)

@@ -1,22 +1,19 @@
-from ..contexts.calculation import CalculationContext
-from ..services.research.export_service import ExportService
-from ..services.research.statistics_service import StatisticsService
-from ..core.time import Time
+from collections.abc import Generator
 from datetime import timedelta
+from typing import Any
 
-
+from ..contexts.calculation import CalculationContext
+from ..core.time import Time
+from ..services.research.export_service import ResearchExportService
 class ResearchModule:
     """SDK interface for Research and bulk data operations."""
 
     def __init__(self, context: CalculationContext) -> None:
         self.context = context
-        self._export_service = ExportService(context)
-        self._stats_service = StatisticsService(context)
+        self._export_service = ResearchExportService(context)
 
-    def generate_series(self, planets: list, start: Time, end: Time, step: timedelta):
+    def generate_series(
+        self, planets: list[Any], start: Time, end: Time, step: timedelta
+    ) -> Generator[Any, None, None]:
         """Streaming generator for planetary positions."""
         return self._export_service.stream_ephemeris(planets, start, end, step)
-
-    def analyze_frequency(self, planet: list, start: Time, end: Time):
-        """Frequency analysis for planetary states."""
-        return self._stats_service.calculate_frequency(planet, start, end)

@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.contexts import CalculationContext
 from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
@@ -22,11 +24,11 @@ class AstronomyVisibilityService:
         alt: float = 0.0,
         event_type: int = 1, # 1=rising, 2=setting etc
         star_name: str = ""
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Calculate next heliacal event for a planet or star.
         """
-        res = self._eph.calculate_heliacal_event(
+        res_raw = self._eph.calculate_heliacal_event(
             time.julian_day,
             planet,
             lat,
@@ -35,14 +37,17 @@ class AstronomyVisibilityService:
             event_type=event_type,
             star_name=star_name,
         )
-        
-        if "event_jd" in res:
+
+        # Explicitly typed dictionary for MyPy satisfaction
+        res: dict[str, Any] = dict(res_raw)
+
+        if "event_jd" in res and res["event_jd"]:
             res["time"] = Time.from_julian_day(res["event_jd"]).dt
-            
+
         res["metadata"] = DomainMetadata(
             capability="astronomy.visibility",
             maturity=self.context.feature.maturity.value,
             fingerprint=self.context.fingerprint
         )
-        
+
         return res

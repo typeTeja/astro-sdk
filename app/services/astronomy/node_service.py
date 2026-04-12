@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.contexts import CalculationContext
 from app.core.constants import Planet, SiderealMode
 from app.core.ephemeris import Ephemeris
@@ -16,8 +18,8 @@ class AstronomyNodeService:
         self._eph = ephemeris or Ephemeris()
 
     def get_lunar_nodes(
-        self, 
-        time: Time, 
+        self,
+        time: Time,
         true_node: bool = True
     ) -> tuple[PlanetSnapshot, PlanetSnapshot]:
         """
@@ -29,7 +31,7 @@ class AstronomyNodeService:
 
         with EphemerisContext(sid_mode=sid_mode):
             data = self._eph.calculate_planet(time.julian_day, planet, sidereal=is_sidereal)
-            
+
             meta = DomainMetadata(
                 capability="astronomy.nodes",
                 maturity=self.context.feature.maturity.value,
@@ -41,9 +43,10 @@ class AstronomyNodeService:
                 longitude=data["longitude"],
                 latitude=data["latitude"],
                 distance=data["distance"],
+                speed_long=data.get("speed_long", 0.0),
                 metadata=meta
             )
-            
+
             # South node is exactly opposite
             south_lon = (data["longitude"] + 180.0) % 360.0
             south = PlanetSnapshot(
@@ -51,9 +54,10 @@ class AstronomyNodeService:
                 longitude=south_lon,
                 latitude=-data["latitude"],
                 distance=data["distance"],
+                speed_long=-data.get("speed_long", 0.0),
                 metadata=meta
             )
-            
+
             return north, south
 
     def get_lilith(self, time: Time, true_lilith: bool = False) -> PlanetSnapshot:
@@ -71,6 +75,7 @@ class AstronomyNodeService:
                 longitude=data["longitude"],
                 latitude=data["latitude"],
                 distance=data["distance"],
+                speed_long=data.get("speed_long", 0.0),
                 metadata=DomainMetadata(
                     capability="astronomy.lilith",
                     maturity=self.context.feature.maturity.value,
@@ -78,7 +83,7 @@ class AstronomyNodeService:
                 )
             )
 
-    def get_planetary_nodes(self, time: Time, planet: Planet) -> dict[str, float]:
+    def get_planetary_nodes(self, time: Time, planet: Planet) -> dict[str, Any]:
         """
         Calculate ascending and descending nodes for a planet.
         """
@@ -89,15 +94,15 @@ class AstronomyNodeService:
         }
 
     def get_apsides(
-        self, 
-        time: Time, 
+        self,
+        time: Time,
         planet: Planet
-    ) -> dict[str, float]:
+    ) -> dict[str, Any]:
         """
         Calculate perihelion and aphelion for a planet using 2.0 pattern.
         """
         data = self._eph.calculate_nodes_and_apsides(time.julian_day, planet)
-        
+
         return {
             "perihelion": data["perihelion"]["longitude"],
             "aphelion": data["aphelion"]["longitude"],

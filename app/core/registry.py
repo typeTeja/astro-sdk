@@ -26,15 +26,21 @@ CAPABILITY_REGISTRY: dict[str, CapabilityRegistration] = {
     ),
     "western.chart": CapabilityRegistration(
         capability="western.chart",
-        maturity=FeatureMaturity.BETA,
+        maturity=FeatureMaturity.PRODUCTION,
         owner="western",
         summary="Western natal chart generation including planets and houses.",
     ),
     "western.aspects": CapabilityRegistration(
         capability="western.aspects",
-        maturity=FeatureMaturity.BETA,
+        maturity=FeatureMaturity.PRODUCTION,
         owner="western",
         summary="Major, minor, and Kepler aspect calculation between planetary positions.",
+    ),
+    "vedic.panchanga": CapabilityRegistration(
+        capability="vedic.panchanga",
+        maturity=FeatureMaturity.PRODUCTION,
+        owner="vedic",
+        summary="High-precision calculation of the five elements of Vedic time.",
     ),
     "core.ephemeris_isolation": CapabilityRegistration(
         capability="core.ephemeris_isolation",

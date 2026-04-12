@@ -1,10 +1,12 @@
+from collections.abc import Sequence
+
 from app.contexts import CalculationContext
+from app.core.constants import ALLOWED_PLANETS
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
-from app.core.constants import ALLOWED_PLANETS, Planet
 from app.domain.astronomy.planet import PlanetSnapshot
-from app.domain.western.transit import TransitAspect
 from app.domain.common.metadata import DomainMetadata
+from app.domain.western.transit import TransitAspect
 
 
 class WesternTransitService:
@@ -16,7 +18,7 @@ class WesternTransitService:
 
     def scan_transits(
         self,
-        natal_positions: list[PlanetSnapshot],
+        natal_positions: Sequence[PlanetSnapshot],
         transit_time: Time,
         aspect_types: list[str] | None = None,
         global_orb: float | None = None,
@@ -25,15 +27,15 @@ class WesternTransitService:
         Calculates aspects between transiting planets and fixed natal positions.
         """
         results = []
-        
+
         # Calculate current transiting positions
         transit_planets = []
         for p_enum in ALLOWED_PLANETS:
             pos = self._ephemeris.calculate_planet(
-                transit_time.julian_day, 
-                p_enum, 
+                transit_time.julian_day,
+                p_enum,
                 sidereal=self.context.zodiac.is_sidereal,
-                heliocentric=self.context.zodiac.heliocentric
+                heliocentric=self.context.coordinate.is_heliocentric
             )
             transit_planets.append(
                 PlanetSnapshot(
@@ -41,6 +43,7 @@ class WesternTransitService:
                     longitude=pos["longitude"],
                     latitude=pos["latitude"],
                     distance=pos["distance"],
+                    speed_long=pos["speed_long"],
                     metadata=DomainMetadata(capability="astronomy.planet", maturity="PROD", fingerprint="transit-scan")
                 )
             )
@@ -48,8 +51,8 @@ class WesternTransitService:
         # Aspect definitions
         target_aspects = aspect_types or ["Conjunction", "Opposition", "Trine", "Square", "Sextile"]
         max_orb = global_orb if global_orb is not None else 8.0
-        
-        ASPECT_DEGREES = {
+
+        aspect_degrees = {
             "Conjunction": 0,
             "Opposition": 180,
             "Trine": 120,
@@ -59,16 +62,16 @@ class WesternTransitService:
 
         for tp in transit_planets:
             for np in natal_positions:
-                for aspect_name, target_angle in ASPECT_DEGREES.items():
+                for aspect_name, target_angle in aspect_degrees.items():
                     if aspect_name not in target_aspects:
                         continue
-                        
+
                     diff = abs(tp.longitude - np.longitude) % 360
                     if diff > 180:
                         diff = 360 - diff
-                    
+
                     orb = abs(diff - target_angle)
-                    
+
                     if orb <= max_orb:
                         results.append(
                             TransitAspect(

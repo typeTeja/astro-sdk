@@ -1,9 +1,12 @@
+from app.core.clock import get_current_time
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, desc, select
+
 from app.models.jobs import Job, JobStatus
 
 logger = logging.getLogger(__name__)
@@ -35,7 +38,7 @@ class JobService:
             raise ValueError(f"Job {job_id} not found.")
 
         job.status = JobStatus.RUNNING
-        job.updated_at = datetime.now(UTC)
+        job.updated_at = get_current_time()
         self.session.add(job)
         self.session.commit()
 
@@ -46,7 +49,7 @@ class JobService:
         """Internal wrapper to handle job state updates and error handling."""
         # Use a fresh session for the background thread to avoid thread-safety issues
         from app.core.database import engine
-        
+
         try:
             with Session(engine) as session:
                 job = session.get(Job, job_id)
@@ -56,16 +59,16 @@ class JobService:
                 try:
                     # Execute the actual task
                     result = task_func(*args, **kwargs)
-                    
+
                     job.status = JobStatus.COMPLETED
                     job.result_url = str(result) if result else None
-                    job.completed_at = datetime.now(UTC)
+                    job.completed_at = get_current_time()
                 except Exception as e:
                     logger.exception(f"Job {job_id} failed: {e}")
                     job.status = JobStatus.FAILED
                     job.error_message = str(e)
-                
-                job.updated_at = datetime.now(UTC)
+
+                job.updated_at = get_current_time()
                 session.add(job)
                 session.commit()
         except Exception as e:
@@ -77,5 +80,5 @@ class JobService:
 
     def get_recent_jobs(self, limit: int = 20) -> list[Job]:
         """List recently created jobs."""
-        statement = select(Job).order_by(Job.created_at.desc()).limit(limit)
+        statement = select(Job).order_by(desc(Job.created_at)).limit(limit)
         return list(self.session.exec(statement).all())

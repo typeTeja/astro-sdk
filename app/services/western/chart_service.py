@@ -1,10 +1,10 @@
 from app.contexts import CalculationContext
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
-from app.domain.western.chart import WesternChart
-from app.services.astronomy.planetary_service import AstronomyPlanetaryService
-from app.services.astronomy.house_service import AstronomyHouseService
 from app.domain.common.metadata import DomainMetadata
+from app.domain.western.chart import WesternChart
+from app.services.astronomy.house_service import AstronomyHouseService
+from app.services.astronomy.planetary_service import AstronomyPlanetaryService
 
 
 class WesternChartService:
@@ -24,6 +24,7 @@ class WesternChartService:
         return WesternChart(
             time=time.dt,
             planets=tuple(planets),
+            houses=houses,
             metadata=DomainMetadata(
                 capability=self.context.feature.capability,
                 maturity=self.context.feature.maturity.value,

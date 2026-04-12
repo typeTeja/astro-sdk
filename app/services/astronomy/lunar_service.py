@@ -1,4 +1,5 @@
-from datetime import timedelta
+from typing import Any
+
 from app.contexts import CalculationContext
 from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
@@ -16,8 +17,8 @@ class AstronomyLunarService:
         self._eph = ephemeris or Ephemeris()
 
     def get_next_phases(
-        self, 
-        start_time: Time, 
+        self,
+        start_time: Time,
         count: int = 4
     ) -> list[LunarPhaseRecord]:
         """
@@ -26,7 +27,7 @@ class AstronomyLunarService:
         """
         phases = []
         current_jd = start_time.julian_day
-        
+
         # 0=New, 90=1st Qtr, 180=Full, 270=3rd Qtr
         target_angles = [0.0, 90.0, 180.0, 270.0]
         names = ["NEW_MOON", "FIRST_QUARTER", "FULL_MOON", "THIRD_QUARTER"]
@@ -36,32 +37,32 @@ class AstronomyLunarService:
             s = self._eph.calculate_planet(current_jd, Planet.SUN)
             m = self._eph.calculate_planet(current_jd, Planet.MOON)
             curr_diff = (m["longitude"] - s["longitude"]) % 360
-            
+
             # Find next target
             next_idx = 0
             for i, target in enumerate(target_angles):
                 if curr_diff < target:
                     next_idx = i
                     break
-            
+
             target_angle = target_angles[next_idx]
-            
+
             # Refine using binary search
             low = current_jd
             high = current_jd + 31.0
-            
+
             for _ in range(25):
                 mid = (low + high) / 2.0
                 ms = self._eph.calculate_planet(mid, Planet.SUN)
                 mm = self._eph.calculate_planet(mid, Planet.MOON)
                 diff = (mm["longitude"] - ms["longitude"]) % 360
-                
+
                 # Check crossing
                 if (diff - target_angle + 180) % 360 - 180 < 0:
                     low = mid
                 else:
                     high = mid
-            
+
             found_jd = (low + high) / 2.0
             phases.append(LunarPhaseRecord(
                 phase_name=names[next_idx],
@@ -73,10 +74,10 @@ class AstronomyLunarService:
                 )
             ))
             current_jd = found_jd + 2.0 # Advance
-            
+
         return phases
 
-    def get_lunar_extremes(self, start_time: Time, count: int = 2) -> list[dict]:
+    def get_lunar_extremes(self, start_time: Time, count: int = 2) -> list[dict[str, Any]]:
         """
         Find next Apogee (max distance) and Perigee (min distance) events.
         """
@@ -102,11 +103,15 @@ class AstronomyLunarService:
                         d1 = self._eph.calculate_planet(m1, Planet.MOON)["distance"]
                         d2 = self._eph.calculate_planet(m2, Planet.MOON)["distance"]
                         if moving_away:
-                            if d1 < d2: jd_low = m1
-                            else: jd_high = m2
+                            if d1 < d2:
+                                jd_low = m1
+                            else:
+                                jd_high = m2
                         else:
-                            if d1 > d2: jd_low = m1
-                            else: jd_high = m2
+                            if d1 > d2:
+                                jd_low = m1
+                            else:
+                                jd_high = m2
                     found_jd = (jd_low + jd_high) / 2.0
                     extremes.append({
                         "type": "APOGEE" if moving_away else "PERIGEE",

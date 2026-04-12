@@ -8,6 +8,7 @@ from app.domain.common.metadata import DomainMetadata
 @dataclass(frozen=True)
 class MundaneIngress:
     planet: Planet
-    sign_name: str
+    from_sign: str
+    to_sign: str
     time: datetime
     metadata: DomainMetadata

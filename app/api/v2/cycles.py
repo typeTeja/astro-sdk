@@ -1,18 +1,19 @@
 """
 /api/v2/cycles — Advanced planetary combinations and midpoints.
 """
-from datetime import UTC, datetime
+from datetime import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.core.constants import Planet, SiderealMode
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
+from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.schemas.base import BaseAstroResponse
 from app.services.western.chart_service import WesternChartService
-from app.contexts.factories import create_default_context
-from app.api.v2.meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
@@ -39,30 +40,21 @@ class CompositeResponse(BaseAstroResponse[CompositeData]):
     summary="[EXPERIMENTAL] Composite Centroid",
     description="**EXPERIMENTAL API:** This calculates a simple spherical arithmetic mean of the requested planets' longitudes. It does not perform true spatial or declination-weighted centroids.",
 )
-async def post_cycles_composite(
+def post_cycles_composite(
     request: CompositeRequest,
-    is_sidereal: bool = Query(True),
-    sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> CompositeResponse:
     """
     Accepts a list of planets and returns their midpoint/centroid coordinate
     at a specific point in time.
     """
     t = Time(request.time)
-    context = create_default_context()
-    context.zodiac.is_sidereal = is_sidereal
-    context.zodiac.sidereal_mode = sidereal_mode
-    
     chart_service = WesternChartService(context, ephemeris=ephemeris)
-    chart = chart_service.create_chart(t, 0.0, 0.0)
-    
+    chart = chart_service.create_chart(t, context.observer.latitude if context.observer else 0.0, context.observer.longitude if context.observer else 0.0)
+
     selected_longs = [p.longitude for p in chart.planets if p.planet in request.planets]
-            
-    if not selected_longs:
-        centroid = 0.0
-    else:
-        # Simple arithmetic mean of longitudes
-        centroid = sum(selected_longs) / len(selected_longs)
+
+    centroid = 0.0 if not selected_longs else sum(selected_longs) / len(selected_longs)
 
     data = CompositeData(
         time=t.dt,
@@ -71,6 +63,10 @@ async def post_cycles_composite(
     )
 
     return CompositeResponse(
-        meta=get_meta(is_sidereal=is_sidereal, sidereal_mode=sidereal_mode), 
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="western.composite"
+        ),
         data=data
     )

@@ -1,17 +1,29 @@
-from fastapi import APIRouter, Query
+from typing import Any
 
+from fastapi import APIRouter, Depends, Query
+
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
 from app.core.constants import SiderealMode
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.schemas.astro import PlanetPositionData
 from app.schemas.charts import NatalChartRequest
-from app.schemas.vedic import DashaPeriodSchema, DashaResponse, DChartData, DChartResponse
-from app.services.vedic.dasha_service import VedicDashaService
-from app.services.vedic.varga_service import VedicVargaService
-from app.services.vedic.shadbala_service import VedicShadbalaService
+from app.schemas.vedic import (
+    AshtakavargaData,
+    AshtakavargaResponse,
+    DashaPeriodSchema,
+    DashaResponse,
+    DChartData,
+    DChartResponse,
+    PlanetaryStrengthSchema,
+    ShadbalaResponse,
+)
 from app.services.vedic.ashtakavarga_service import VedicAshtakavargaService
-from app.contexts.factories import create_default_context
-from app.api.v2.meta import get_meta
+from app.services.vedic.dasha_service import VedicDashaService
+from app.services.vedic.shadbala_service import VedicShadbalaService
+from app.services.vedic.varga_service import VedicVargaService
 
 router = APIRouter()
 ephemeris = Ephemeris()
@@ -20,8 +32,10 @@ ephemeris = Ephemeris()
 @router.post(
     "/divisional", response_model=DChartResponse, summary="Calculate a varga (divisional chart)"
 )
-async def get_varga(
-    request: NatalChartRequest, division: int = Query(9, ge=1, le=150)
+def get_varga(
+    request: NatalChartRequest,
+    division: int = Query(9, ge=1, le=150),
+    context: CalculationContext = Depends(get_calculation_context)
 ) -> DChartResponse:
     """
     Calculate planetary positions for a Vedic divisional chart.
@@ -32,15 +46,13 @@ async def get_varga(
     """
     t = Time(request.time.time)
 
-    mode = SiderealMode.LAHIRI
-    if request.settings and "sidereal_mode" in request.settings:
-        mode = SiderealMode(request.settings["sidereal_mode"])
+    # 2.0 Standard: Vedic defaults to Sidereal if not explicitly overridden by headers/query
+    if not context.zodiac.is_sidereal and "X-Astro-Is-Sidereal" not in context.fingerprint:
+         from app.contexts.zodiac import ZodiacType
+         context.zodiac.zodiac = ZodiacType.SIDEREAL
+         context.zodiac.sidereal_mode = SiderealMode.LAHIRI
 
-    context = create_default_context()
-    context.zodiac.sidereal_mode = mode
-    context.zodiac.zodiac = "sidereal"
-    
-    varga_service = VedicVargaService(context, ephemeris=ephemeris)
+    varga_service = VedicVargaService(context)
     positions = varga_service.calculate_varga_positions(t, division)
 
     # Map domain PlanetPosition → PlanetPositionData schema
@@ -59,66 +71,79 @@ async def get_varga(
     ]
 
     return DChartResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=mode),
-        data=DChartData(division=division, planets=planets_data),
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="vedic.varga"
+        ),
+        data=DChartData(division=division, planets=planets_data)
     )
 
 
 @router.post("/dashas", response_model=DashaResponse, summary="Calculate predictive dasha periods")
-async def get_dashas(
+def get_dashas(
     request: NatalChartRequest,
     cycles: int = Query(1, ge=1, le=2),
     levels: int = Query(2, ge=1, le=2, description="Level 1 = Mahadasha, Level 2 = Antardasha"),
+    context: CalculationContext = Depends(get_calculation_context)
 ) -> DashaResponse:
     """
     Calculate Vimshottari dasha periods for a birth chart.
     """
     t = Time(request.time.time)
 
-    mode = SiderealMode.LAHIRI
-    if request.settings and "sidereal_mode" in request.settings:
-        mode = SiderealMode(request.settings["sidereal_mode"])
+    # 2.0 Standard: Vedic defaults to Sidereal if not explicitly overridden by headers/query
+    if not context.zodiac.is_sidereal and "X-Astro-Is-Sidereal" not in context.fingerprint:
+         from app.contexts.zodiac import ZodiacType
+         context.zodiac.zodiac = ZodiacType.SIDEREAL
+         context.zodiac.sidereal_mode = SiderealMode.LAHIRI
 
-    context = create_default_context()
-    context.zodiac.sidereal_mode = mode
-    
-    dasha_service = VedicDashaService(context, ephemeris=ephemeris)
+    dasha_service = VedicDashaService(context)
     domain_dashas = dasha_service.calculate_mahadashas(t) # Simplified for v1
 
     def _map_dasha(d: Any) -> DashaPeriodSchema:
         return DashaPeriodSchema(
             lord=d.lord.name if hasattr(d.lord, "name") else str(d.lord),
-            start_time=d.start_time,
-            end_time=d.end_time,
+            start_time=d.start,
+            end_time=d.end,
             level=d.level,
             sub_periods=[_map_dasha(sub) for sub in d.sub_periods] if hasattr(d, "sub_periods") and d.sub_periods else None,
         )
 
     dashas = [_map_dasha(d) for d in domain_dashas]
-    return DashaResponse(meta=get_meta(is_sidereal=True, sidereal_mode=mode), data=dashas)
+    return DashaResponse(
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="vedic.dashas"
+        ),
+        data=dashas
+    )
 
-from app.schemas.vedic import ShadbalaResponse, AshtakavargaResponse, AshtakavargaData, PlanetaryStrengthSchema
 
 @router.post(
     "/shadbala", response_model=ShadbalaResponse, summary="[EXPERIMENTAL] Shadbala Planetary Strength"
 )
-async def get_shadbala(
+def get_shadbala(
     request: NatalChartRequest,
+    context: CalculationContext = Depends(get_calculation_context)
 ) -> ShadbalaResponse:
     """
     Evaluates the 6-fold planetary strength routing matrix.
     """
     t = Time(request.time.time)
-    mode = SiderealMode(request.settings.get("sidereal_mode", SiderealMode.LAHIRI.value)) if request.settings else SiderealMode.LAHIRI
-    
-    context = create_default_context()
-    context.zodiac.sidereal_mode = mode
-    
+
+    # 2.0 Standard: Vedic defaults to Sidereal if not explicitly overridden by headers/query
+    if not context.zodiac.is_sidereal and "X-Astro-Is-Sidereal" not in context.fingerprint:
+         from app.contexts.zodiac import ZodiacType
+         context.zodiac.zodiac = ZodiacType.SIDEREAL
+         context.zodiac.sidereal_mode = SiderealMode.LAHIRI
+
     # We need a chart for shadbala
     from app.services.western import WesternChartService
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     chart = chart_service.create_chart(t, request.location.latitude, request.location.longitude)
-    
+
     shadbala_service = VedicShadbalaService(context)
     domain_scores = shadbala_service.calculate_shadbala(chart.planets, chart.houses.axes.ascendant if chart.houses and chart.houses.axes else 0.0)
 
@@ -135,7 +160,12 @@ async def get_shadbala(
         ) for s in domain_scores
     ]
     return ShadbalaResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=mode, experimental=True),
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            experimental=True,
+            capability="vedic.shadbala"
+        ),
         data=mapped
     )
 
@@ -143,18 +173,20 @@ async def get_shadbala(
 @router.post(
     "/ashtakavarga", response_model=AshtakavargaResponse, summary="[EXPERIMENTAL] Ashtakavarga Array"
 )
-async def get_ashtakavarga(
+def get_ashtakavarga(
     request: NatalChartRequest,
+    context: CalculationContext = Depends(get_calculation_context)
 ) -> AshtakavargaResponse:
     """
     Evaluates the basic bindu transit scoring matrix.
     """
     t = Time(request.time.time)
-    mode = SiderealMode(request.settings.get("sidereal_mode", SiderealMode.LAHIRI.value)) if request.settings else SiderealMode.LAHIRI
-    
-    context = create_default_context()
-    context.zodiac.sidereal_mode = mode
-    
+
+    if not context.zodiac.is_sidereal and "X-Astro-Is-Sidereal" not in context.fingerprint:
+         from app.contexts.zodiac import ZodiacType
+         context.zodiac.zodiac = ZodiacType.SIDEREAL
+         context.zodiac.sidereal_mode = SiderealMode.LAHIRI
+
     from app.services.western import WesternChartService
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     chart = chart_service.create_chart(t, request.location.latitude, request.location.longitude)
@@ -165,6 +197,11 @@ async def get_ashtakavarga(
     # Simplified mapping to legacy matrix if needed
     data = AshtakavargaData(matrix={"SAV": domain_matrix.matrix})
     return AshtakavargaResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=mode, experimental=True),
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            experimental=True,
+            capability="vedic.ashtakavarga"
+        ),
         data=data
     )

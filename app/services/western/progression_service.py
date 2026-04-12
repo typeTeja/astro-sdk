@@ -1,9 +1,9 @@
 from app.contexts import CalculationContext
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
+from app.domain.common.metadata import DomainMetadata
 from app.domain.western.progression import ProgressedChart
 from app.services.astronomy.planetary_service import AstronomyPlanetaryService
-from app.domain.common.metadata import DomainMetadata
 
 
 class WesternProgressionService:
@@ -24,17 +24,17 @@ class WesternProgressionService:
         """
         # (TargetTime - NatalTime) in days
         delta_days = target_time.julian_day - natal_time.julian_day
-        
+
         # 1 day = 1 year (365.2425 days average tropical year)
         progression_delta = delta_days / 365.242199
-        
+
         # Progressed Time
         prog_jd = natal_time.julian_day + progression_delta
         prog_time = Time.from_julian_day(prog_jd)
-        
+
         # Calculate positions at progressed time
         planets = self._planetary_service.calculate_positions(prog_time)
-        
+
         return ProgressedChart(
             natal_time=natal_time.dt,
             progressed_time=prog_time.dt,

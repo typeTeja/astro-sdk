@@ -2,16 +2,17 @@
 /api/v2/projections — Mathematical time-based forward projections.
 """
 from datetime import UTC, datetime
-from typing import Any
 
-from fastapi import APIRouter, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
 from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.schemas.base import BaseAstroResponse
-from app.api.v2.meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
@@ -38,17 +39,18 @@ class ProjectionResponse(BaseAstroResponse[ProjectionResponseData]):
     summary="[EXPERIMENTAL] Time-Swing Projection",
     description="**EXPERIMENTAL API:** This calculates pure, constant time-step intervals (e.g., exactly +90.0 days per step) from a given start date. It does not factor in planetary speed fluctuations or retrograde warping.",
 )
-async def get_time_swing(
-    start_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+def get_time_swing(
+    start_time: datetime = Query(...),
     interval_days: float = Query(90.0, gt=0, description="Step duration in days"),
     iterations: int = Query(4, ge=1, le=100),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> ProjectionResponse:
     """
     Steps forward in uniform time intervals from a seed point.
     """
     t_start = Time(start_time)
     points = []
-    
+
     for i in range(1, iterations + 1):
         target_jd = t_start.julian_day + (interval_days * i)
         target_time = Time.from_julian_day(target_jd)
@@ -58,9 +60,16 @@ async def get_time_swing(
                 time_offset_days=interval_days * i
             )
         )
-        
+
     data = ProjectionResponseData(subject="time_swing", points=points)
-    return ProjectionResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
+    return ProjectionResponse(
+        meta=get_meta(
+            capability="research.projections.time_swing",
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode
+        ),
+        data=data
+    )
 
 
 @router.get(
@@ -69,11 +78,12 @@ async def get_time_swing(
     summary="[EXPERIMENTAL] Synodical Lines Projection",
     description="**EXPERIMENTAL API:** This projection currently utilizes basic **Mean Daily Motion** approximations to estimate when a planet will hit a specific angle offset. It does *not* utilize rigorous multi-pass inverse bisection, and therefore errors will compound significantly during retrograde stations. Use only for macro structural framing.",
 )
-async def get_synodical_lines(
+def get_synodical_lines(
     planet: Planet,
-    start_time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    start_time: datetime = Query(...),
     interval_degrees: float = Query(90.0, gt=0, description="Angle interval for projection"),
     iterations: int = Query(4, ge=1, le=12),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> ProjectionResponse:
     """
     Projects when a planet will hit successive degree intervals from its current position.
@@ -95,7 +105,7 @@ async def get_synodical_lines(
         Planet.PLUTO: 0.003,
     }
     speed = mean_speed_map.get(planet, 1.0)
-    
+
     points = []
     for i in range(1, iterations + 1):
         target_angle = interval_degrees * i
@@ -109,4 +119,11 @@ async def get_synodical_lines(
         )
 
     data = ProjectionResponseData(subject=f"synodical_line_{planet.name}", points=points)
-    return ProjectionResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
+    return ProjectionResponse(
+        meta=get_meta(
+            capability="research.projections.synodical",
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode
+        ),
+        data=data
+    )

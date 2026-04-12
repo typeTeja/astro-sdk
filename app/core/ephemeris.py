@@ -1,5 +1,4 @@
 import os
-from functools import lru_cache
 from threading import RLock
 from typing import Any
 
@@ -104,7 +103,12 @@ class Ephemeris:
             swe.set_sid_mode(mode, t0, ayan_t0)
 
     def calculate_planet(
-        self, jd: float, planet: Planet, sidereal: bool = True, heliocentric: bool = False
+        self,
+        jd: float,
+        planet: Planet,
+        sidereal: bool = True,
+        heliocentric: bool = False,
+        topocentric: bool = False,
     ) -> dict[str, float]:
         """
         Calculate planet position.
@@ -119,6 +123,8 @@ class Ephemeris:
             flags |= swe.FLG_SIDEREAL
         if heliocentric:
             flags |= swe.FLG_HELCTR  # Heliocentric flag
+        if topocentric:
+            flags |= swe.FLG_TOPOCTR
 
         with _SWISS_LOCK:
             try:
@@ -300,7 +306,7 @@ class Ephemeris:
                     f"({MAX_SEARCH_DAYS} days)"
                 )
 
-        _SOLAR_ECLIPSE_TYPE: dict[int, str] = {
+        solar_eclipse_type: dict[int, str] = {
             1: "TOTAL",
             2: "ANNULAR",
             4: "HYBRID",
@@ -317,7 +323,7 @@ class Ephemeris:
                 return {
                     "peak_jd": float(tret[0]),
                     "magnitude": float(tret[1]),
-                    "type": _SOLAR_ECLIPSE_TYPE.get(ec_flag, f"UNKNOWN({ec_flag})"),
+                    "type": solar_eclipse_type.get(ec_flag, f"UNKNOWN({ec_flag})"),
                 }
             except Exception as e:
                 raise EphemerisError(f"Solar eclipse search failed: {str(e)}") from e
@@ -333,7 +339,7 @@ class Ephemeris:
             if search_range > MAX_SEARCH_DAYS:
                 raise SearchRangeTooLargeError("Search range error")
 
-        _LUNAR_ECLIPSE_TYPE: dict[int, str] = {
+        lunar_eclipse_type: dict[int, str] = {
             1: "TOTAL",
             2: "PARTIAL",
             4: "PENUMBRAL",
@@ -349,7 +355,7 @@ class Ephemeris:
                 return {
                     "peak_jd": float(tret[0]),
                     "magnitude": float(tret[1]),
-                    "type": _LUNAR_ECLIPSE_TYPE.get(ec_flag, f"UNKNOWN({ec_flag})"),
+                    "type": lunar_eclipse_type.get(ec_flag, f"UNKNOWN({ec_flag})"),
                 }
             except Exception as e:
                 raise EphemerisError(f"Lunar eclipse search failed: {str(e)}") from e

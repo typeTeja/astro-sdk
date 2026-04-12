@@ -1,7 +1,7 @@
 from typing import Any, Self
 
 from app.core.constants import SiderealMode
-from app.core.ephemeris import Ephemeris, _SWISS_LOCK
+from app.core.ephemeris import _SWISS_LOCK, Ephemeris
 
 
 class EphemerisContext:
@@ -23,7 +23,7 @@ class EphemerisContext:
 
         self._prev_sid_mode: SiderealMode | None = None
         self._prev_topo: tuple[float, float, float] | None = None
-        self._prev_tidal: float | None = None
+        self._prev_tidal: float | str | None = None
 
     def __enter__(self) -> Self:
         with _SWISS_LOCK:

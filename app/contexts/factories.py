@@ -9,7 +9,7 @@ from app.core.constants import HouseSystem, SiderealMode
 
 def build_western_chart_context(
     *,
-    house_system: HouseSystem = HouseSystem.PLACIDUS,
+    house_system: HouseSystem = HouseSystem.WHOLE_SIGN,
     sidereal_mode: SiderealMode | None = SiderealMode.LAHIRI,
     is_sidereal: bool = True,
     heliocentric: bool = False,
@@ -46,8 +46,8 @@ def build_western_chart_context(
 def create_default_context() -> CalculationContext:
     """Create a minimal default context for internal migration logic."""
     return CalculationContext(
-        zodiac=ZodiacContext(zodiac=ZodiacType.TROPICAL, sidereal_mode=None),
+        zodiac=ZodiacContext(zodiac=ZodiacType.SIDEREAL, sidereal_mode=SiderealMode.LAHIRI),
         coordinate=CoordinateContext(system=CoordinateSystem.GEOCENTRIC),
-        house=HouseContext(system=HouseSystem.PLACIDUS),
+        house=HouseContext(system=HouseSystem.WHOLE_SIGN),
         feature=FeatureContext(capability="core.generic", maturity=FeatureMaturity.EXPERIMENTAL),
     )

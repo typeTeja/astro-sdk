@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from app.domain.common.metadata import DomainMetadata
 
 

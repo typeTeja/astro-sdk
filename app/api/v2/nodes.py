@@ -3,9 +3,12 @@
 """
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.core.constants import Planet, SiderealMode
+from app.api.v2.common import get_calculation_context
+from app.api.v2.meta import get_meta
+from app.contexts.calculation import CalculationContext
+from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
 from app.core.time import Time
 from app.schemas.nodes import (
@@ -18,8 +21,6 @@ from app.schemas.nodes import (
     PlanetaryNodesSchema,
 )
 from app.services.astronomy.node_service import AstronomyNodeService
-from app.contexts.factories import create_default_context
-from app.api.v2.meta import get_meta
 
 router = APIRouter()
 ephemeris = Ephemeris()
@@ -30,19 +31,17 @@ ephemeris = Ephemeris()
     response_model=LunarNodesResponse,
     summary="Get North and South lunar node positions",
 )
-async def get_lunar_nodes(
-    time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+def get_lunar_nodes(
+    time: datetime = Query(...),
     true_node: bool = Query(True, description="True node (oscillating) vs Mean node"),
-    sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> LunarNodesResponse:
     """
     Calculate the True or Mean North and South lunar nodes.
     """
     t = Time(time)
-    context = create_default_context()
-    context.zodiac.sidereal_mode = sidereal_mode
     node_service = AstronomyNodeService(context, ephemeris=ephemeris)
-    
+
     north, south = node_service.get_lunar_nodes(t, true_node=true_node)
 
     node_label = "True Node" if true_node else "Mean Node"
@@ -59,7 +58,12 @@ async def get_lunar_nodes(
         ),
     )
     return LunarNodesResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=data
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="astronomy.nodes.lunar"
+        ),
+        data=data
     )
 
 
@@ -68,19 +72,17 @@ async def get_lunar_nodes(
     response_model=LilithResponse,
     summary="Get Black Moon Lilith position",
 )
-async def get_lilith(
-    time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+def get_lilith(
+    time: datetime = Query(...),
     true_lilith: bool = Query(False, description="True (oscillating) vs Mean Lilith"),
-    sidereal_mode: SiderealMode = Query(SiderealMode.LAHIRI),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> LilithResponse:
     """
     Calculate the position of Black Moon Lilith (Mean or True).
     """
     t = Time(time)
-    context = create_default_context()
-    context.zodiac.sidereal_mode = sidereal_mode
     node_service = AstronomyNodeService(context, ephemeris=ephemeris)
-    
+
     pos = node_service.get_lilith(t, true_lilith=true_lilith)
 
     data = LilithSchema(
@@ -90,7 +92,12 @@ async def get_lilith(
         is_mean=not true_lilith,
     )
     return LilithResponse(
-        meta=get_meta(is_sidereal=True, sidereal_mode=sidereal_mode), data=data
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="astronomy.nodes.lilith"
+        ),
+        data=data
     )
 
 
@@ -99,18 +106,17 @@ async def get_lilith(
     response_model=PlanetaryNodesResponse,
     summary="Get nodes and apsides for a planet",
 )
-async def get_planetary_nodes(
+def get_planetary_nodes(
     planet: Planet,
-    time: datetime = Query(default_factory=lambda: datetime.now(UTC)),
+    time: datetime = Query(...),
+    context: CalculationContext = Depends(get_calculation_context),
 ) -> PlanetaryNodesResponse:
     """
     Calculate ascending/descending nodes and perihelion/aphelion for a planet.
     """
     t = Time(time)
-    # Binary search for nodes/apsides is mostly tropical/neutral in SE
-    context = create_default_context()
     node_service = AstronomyNodeService(context, ephemeris=ephemeris)
-    
+
     nodes = node_service.get_planetary_nodes(t, planet)
     apsides = node_service.get_apsides(t, planet)
 
@@ -121,4 +127,11 @@ async def get_planetary_nodes(
         perihelion=apsides["perihelion"],
         aphelion=apsides["aphelion"],
     )
-    return PlanetaryNodesResponse(meta=get_meta(is_sidereal=False, sidereal_mode=None), data=data)
+    return PlanetaryNodesResponse(
+        meta=get_meta(
+            is_sidereal=context.zodiac.is_sidereal,
+            sidereal_mode=context.zodiac.sidereal_mode,
+            capability="astronomy.nodes.planetary"
+        ),
+        data=data
+    )

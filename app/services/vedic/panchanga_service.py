@@ -1,11 +1,13 @@
-from datetime import datetime, time as dt_time
+from datetime import datetime
+from datetime import time as dt_time
+
 from app.contexts import CalculationContext
 from app.core.constants import Planet, SiderealMode
 from app.core.ephemeris import Ephemeris
 from app.core.ephemeris_context import EphemerisContext
 from app.core.time import Time
-from app.domain.vedic.panchanga import PanchangaData
 from app.domain.common.metadata import DomainMetadata
+from app.schemas.charts import PanchangaDataSchema
 
 
 class VedicPanchangaService:
@@ -15,33 +17,33 @@ class VedicPanchangaService:
     """
 
     TITHI_NAMES = [
-        "Prathama", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashti", 
-        "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi", 
-        "Trayodashi", "Chaturdashi", "Purnima", "Prathama", "Dwitiya", 
-        "Tritiya", "Chaturthi", "Panchami", "Shashti", "Saptami", "Ashtami", 
-        "Navami", "Dashami", "Ekadashi", "Dwadashi", "Trayodashi", 
+        "Prathama", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashti",
+        "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi",
+        "Trayodashi", "Chaturdashi", "Purnima", "Prathama", "Dwitiya",
+        "Tritiya", "Chaturthi", "Panchami", "Shashti", "Saptami", "Ashtami",
+        "Navami", "Dashami", "Ekadashi", "Dwadashi", "Trayodashi",
         "Chaturdashi", "Amavasya"
     ]
 
     NAKSHATRA_NAMES = [
-        "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra", 
-        "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", 
-        "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha", 
-        "Anuradha", "Jyeshtha", "Mula", "Purva Ashadha", "Uttara Ashadha", 
-        "Shravana", "Dhanishta", "Shatabhisha", "Purva Bhadrapada", 
+        "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+        "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni",
+        "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha",
+        "Anuradha", "Jyeshtha", "Mula", "Purva Ashadha", "Uttara Ashadha",
+        "Shravana", "Dhanishta", "Shatabhisha", "Purva Bhadrapada",
         "Uttara Bhadrapada", "Revati"
     ]
 
     YOGA_NAMES = [
-        "Vishkumbha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda", 
-        "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva", "Vyaghata", 
-        "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyan", "Parigha", 
-        "Shiva", "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", 
+        "Vishkumbha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda",
+        "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva", "Vyaghata",
+        "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyan", "Parigha",
+        "Shiva", "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma", "Indra",
         "Vaidhriti"
     ]
 
     KARANA_NAMES = [
-        "Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti", 
+        "Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti",
         "Shakuni", "Chatushpada", "Naga", "Kinstughna"
     ]
 
@@ -53,19 +55,20 @@ class VedicPanchangaService:
         self.context = context
         self._eph = ephemeris or Ephemeris()
 
-    def calculate_panchanga(
-        self,
-        time: Time,
-        lat: float,
-        lon: float,
-        alt: float = 0.0
-    ) -> PanchangaData:
+    def calculate_panchanga(self, time: Time) -> PanchangaDataSchema:
         """
-        Calculate Panchanga for a given time and location using the 2.0 context model.
+        Calculate Panchanga for a given time using the 2.0 context model.
         """
+        if not self.context.observer:
+            raise ValueError("Observer context with coordinates is required for Panchanga.")
+            
+        lat = self.context.observer.latitude
+        lon = self.context.observer.longitude
+        alt = self.context.observer.altitude
+
         z_ctx = self.context.zodiac
         sid_mode = z_ctx.sidereal_mode or SiderealMode.LAHIRI
-        
+
         with EphemerisContext(sid_mode=sid_mode):
             # 1. Get Sun and Moon Positions (Sidereal)
             sun_pos = self._eph.calculate_planet(time.julian_day, Planet.SUN, sidereal=True)
@@ -103,17 +106,13 @@ class VedicPanchangaService:
                 rise_jd = self._eph.calculate_rise_set(jd_start, Planet.SUN, lat, lon, alt, is_rise=True)
                 set_jd = self._eph.calculate_rise_set(jd_start, Planet.SUN, lat, lon, alt, is_rise=False)
 
-            return PanchangaData(
+            return PanchangaDataSchema(
                 tithi=tithi_name,
                 vara=vara_name,
                 nakshatra=nak_name,
                 yoga=yoga_name,
                 karana=karana_name,
                 sunrise=Time.from_julian_day(rise_jd).dt if rise_jd else time.dt,
-                sunset=Time.from_julian_day(set_jd).dt if set_jd else time.dt,
-                metadata=DomainMetadata(
-                    capability="vedic.panchanga",
-                    maturity=self.context.feature.maturity.value,
-                    fingerprint=self.context.fingerprint
-                )
+                sunset=Time.from_julian_day(set_jd).dt if set_jd else time.dt
             )
+

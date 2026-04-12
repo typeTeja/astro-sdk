@@ -15,8 +15,8 @@ class AstronomyStarService:
         self._eph = ephemeris or Ephemeris()
 
     def get_star_position(
-        self, 
-        star_name: str, 
+        self,
+        star_name: str,
         time: Time
     ) -> FixedStarPosition:
         """
@@ -24,10 +24,10 @@ class AstronomyStarService:
         """
         is_sidereal = self.context.zodiac.zodiac == "sidereal" or self.context.zodiac.sidereal_mode is not None
         sid_mode = self.context.zodiac.sidereal_mode
-        
+
         with EphemerisContext(sid_mode=sid_mode):
             data = self._eph.calculate_fixed_star(time.julian_day, star_name, sidereal=is_sidereal)
-            
+
             return FixedStarPosition(
                 name=data["name"],
                 longitude=data["longitude"],
@@ -41,8 +41,8 @@ class AstronomyStarService:
             )
 
     def get_stars_positions(
-        self, 
-        star_names: list[str], 
+        self,
+        star_names: list[str],
         time: Time
     ) -> list[FixedStarPosition]:
         """

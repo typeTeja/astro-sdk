@@ -1,7 +1,7 @@
 from app.contexts.calculation import CalculationContext
 from app.contexts.coordinate import CoordinateContext, CoordinateSystem
-from app.contexts.feature import FeatureContext, FeatureMaturity
 from app.contexts.factories import build_western_chart_context
+from app.contexts.feature import FeatureContext, FeatureMaturity
 from app.contexts.house import HouseContext
 from app.contexts.observer import ObserverContext
 from app.contexts.time import TimeContext

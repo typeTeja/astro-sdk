@@ -1,4 +1,5 @@
 from typing import Any
+
 from app.contexts import CalculationContext
 from app.core.constants import Planet
 from app.core.ephemeris import Ephemeris
@@ -26,8 +27,9 @@ class AstronomyParanService:
         Find all parans occurring on the calendar day of the given time using the 2.0 context.
         """
         import datetime
+
         from app.core.ephemeris_context import EphemerisContext
-        
+
         midnight = Time(
             datetime.datetime(time.dt.year, time.dt.month, time.dt.day, tzinfo=datetime.UTC)
         )

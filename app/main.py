@@ -2,13 +2,36 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v2 import (
-    aspects, astro, charts, crossings, cycles, events, financial,
-    heliacal, horizon, lunar, nodes, parans, progressions,
-    projections, quant, signals, stars, synodic, transits
+    aspects,
+    astro,
+    charts,
+    crossings,
+    cycles,
+    events,
+    financial,
+    heliacal,
+    horizon,
+    lunar,
+    nodes,
+    parans,
+    progressions,
+    projections,
+    quant,
+    signals,
+    stars,
+    synodic,
+    transits,
 )
+from app.api.v2.alerts.rules import router as alert_v2_router
+from app.api.v2.astronomy.positions import router as astronomy_v2_router
+from app.api.v2.research.jobs import router as research_v2_router
+from app.api.v2.vedic.classic import router as vedic_classic_router
+from app.api.v2.vedic.panchang import router as vedic_panchang_router
+from app.api.v2.western.charts import router as western_v2_router
 from app.core.database import create_db_and_tables
 from app.core.errors import (
     AstroError,
@@ -18,11 +41,6 @@ from app.core.errors import (
     SearchRangeTooLargeError,
     UnsupportedPlanetError,
 )
-from app.api.v2.astronomy.positions import router as astronomy_v2_router
-from app.api.v2.western.charts import router as western_v2_router
-from app.api.v2.vedic.panchang import router as vedic_v2_router
-from app.api.v2.research.jobs import router as research_v2_router
-from app.api.v2.alerts.rules import router as alert_v2_router
 
 
 @asynccontextmanager
@@ -35,7 +53,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="AstroSDK 2.0 Platform",
@@ -130,7 +147,8 @@ app.include_router(projections.router, prefix="/api/v2/projections", tags=["Math
 # Namespaced Package Routers
 app.include_router(astronomy_v2_router, prefix="/api/v2/astronomy", tags=["V2 Astronomy"])
 app.include_router(western_v2_router, prefix="/api/v2/western", tags=["V2 Western"])
-app.include_router(vedic_v2_router, prefix="/api/v2/vedic", tags=["V2 Vedic"])
+app.include_router(vedic_panchang_router, prefix="/api/v2/vedic", tags=["V2 Vedic Panchang"])
+app.include_router(vedic_classic_router, prefix="/api/v2/vedic/classic", tags=["V2 Vedic Classic"])
 app.include_router(research_v2_router, prefix="/api/v2/research", tags=["V2 Research"])
 app.include_router(alert_v2_router, prefix="/api/v2/alerts", tags=["V2 Alerts"])
 

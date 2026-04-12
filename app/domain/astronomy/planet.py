@@ -10,4 +10,19 @@ class PlanetSnapshot:
     longitude: float
     latitude: float
     distance: float
+    speed_long: float
     metadata: DomainMetadata
+
+    @property
+    def is_retrograde(self) -> bool:
+        return self.speed_long < 0
+
+    @property
+    def sign(self) -> int:
+        return int(self.longitude / 30)
+
+    @property
+    def sign_name(self) -> str:
+        names = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+        return names[self.sign % 12]

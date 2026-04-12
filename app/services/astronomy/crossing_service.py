@@ -23,20 +23,20 @@ class AstronomyCrossingService:
         """
         is_sidereal = self.context.zodiac.is_sidereal
         is_helio = self.context.coordinate.is_heliocentric
-        
+
         current_jd = start_time.julian_day
         end_jd = current_jd + max_days
-        
+
         # moon is fast, others are slower
         step = 0.5 if planet == Planet.MOON else 1.0
-            
+
         def get_diff(jd: float) -> float:
             pos = self._ephemeris.calculate_planet(jd, planet, sidereal=is_sidereal, heliocentric=is_helio)
             return (pos["longitude"] - target_longitude + 180) % 360 - 180
 
         last_diff = get_diff(current_jd)
         found_window = None
-        
+
         while current_jd < end_jd:
             next_jd = min(current_jd + step, end_jd)
             curr_diff = get_diff(next_jd)
@@ -45,10 +45,10 @@ class AstronomyCrossingService:
                 break
             last_diff = curr_diff
             current_jd = next_jd
-            
+
         if not found_window:
             return start_time
-            
+
         t1, t2 = found_window
         d1 = get_diff(t1)
         for _ in range(30):
@@ -59,7 +59,7 @@ class AstronomyCrossingService:
                 d1 = dm
             else:
                 t2 = tm
-        
+
         return Time.from_julian_day((t1 + t2) / 2.0)
 
     def find_aspect_crossings(
@@ -75,29 +75,29 @@ class AstronomyCrossingService:
         """
         is_sidereal = self.context.zodiac.is_sidereal
         is_helio = self.context.coordinate.is_heliocentric
-        
+
         results = []
         current_jd = start_time.julian_day
         max_jd = end_time.julian_day
         step = 0.5 # half day steps for aspects
-        
+
         def get_angle_diff(jd: float) -> float:
             pos1 = self._ephemeris.calculate_planet(jd, p1, sidereal=is_sidereal, heliocentric=is_helio)
             pos2 = self._ephemeris.calculate_planet(jd, p2, sidereal=is_sidereal, heliocentric=is_helio)
-            
+
             # separation
             diff = abs(pos1["longitude"] - pos2["longitude"]) % 360
             if diff > 180:
                 diff = 360 - diff
-            
+
             return diff - target_angle
 
         last_diff = get_angle_diff(current_jd)
-        
+
         while current_jd < max_jd:
             next_jd = min(current_jd + step, max_jd)
             curr_diff = get_angle_diff(next_jd)
-            
+
             if last_diff * curr_diff <= 0:
                 # Bisection to refine
                 t1, t2 = current_jd, next_jd
@@ -111,8 +111,8 @@ class AstronomyCrossingService:
                     else:
                         t2 = tm
                 results.append(Time.from_julian_day((t1 + t2) / 2.0))
-            
+
             last_diff = curr_diff
             current_jd = next_jd
-            
+
         return results

@@ -21,7 +21,7 @@ class AstronomyHouseService:
         """Calculates house cusps and axes using the current context."""
         house_ctx = self.context.house
         zodiac_ctx = self.context.zodiac
-        
+
         data = self._eph.calculate_houses(
             time.julian_day,
             lat,
@@ -29,22 +29,23 @@ class AstronomyHouseService:
             system=house_ctx.system,
             sidereal=zodiac_ctx.is_sidereal
         )
-        
+
         cusps = [
-            HouseCusp(number=i+1, longitude=lon) 
+            HouseCusp(number=i+1, longitude=lon)
             for i, lon in enumerate(data["cusps"])
         ]
-        
+
         axes = HouseAxes(
             ascendant=data["ascendant"],
-            mc=data["mc"],
-            armc=data["armc"],
+            midheaven=data["mc"],
+            descendant=(data["ascendant"] + 180) % 360,
+            imum_coeli=(data["mc"] + 180) % 360,
             vertex=data["vertex"]
         )
-        
+
         return ChartHouses(
             system=house_ctx.system,
-            cusps=tuple(cusps),
+            cusps=cusps,
             axes=axes,
             metadata=DomainMetadata(
                 capability="astronomy.houses",
