@@ -1,7 +1,7 @@
 from typing import Any, Self
 
-from .constants import SiderealMode
-from .ephemeris import Ephemeris, _SWISS_LOCK
+from app.core.constants import SiderealMode
+from app.core.ephemeris import Ephemeris, _SWISS_LOCK
 
 
 class EphemerisContext:

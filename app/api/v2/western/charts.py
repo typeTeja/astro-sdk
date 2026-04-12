@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from ....contexts.calculation import CalculationContext
-from ....core.time import Time
-from ....schemas.charts import NatalChartResponse, TransitChartResponse, NatalChartRequest
-from ....services.western.chart_service import WesternChartService
-from ..common import get_calculation_context
+from app.contexts.calculation import CalculationContext
+from app.core.time import Time
+from app.schemas.charts import NatalChartResponse, TransitChartResponse, NatalChartRequest
+from app.services.western.chart_service import WesternChartService
+from app.api.v2.common import get_calculation_context
 
 router = APIRouter()
 
@@ -30,9 +30,9 @@ async def create_natal_chart(
     chart = service.create_chart(t, context.observer.latitude, context.observer.longitude)
     
     # Map to NatalChartData schema
-    from ....schemas.astro import PlanetPositionData
-    from ....schemas.charts import NatalChartData
-    from ....api.v1.meta import get_meta
+    from app.schemas.astro import PlanetPositionData
+    from app.schemas.charts import NatalChartData
+    from app.api.v2.meta import get_meta
     
     planets = [
         PlanetPositionData(
@@ -80,9 +80,9 @@ async def get_transit_chart(
     service = WesternChartService(context)
     chart = service.create_chart(t, latitude, longitude)
     
-    from ....schemas.astro import PlanetPositionData
-    from ....schemas.charts import TransitChartData
-    from ....api.common.metadata import get_meta
+    from app.schemas.astro import PlanetPositionData
+    from app.schemas.charts import TransitChartData
+    from app.api.common.metadata import get_meta
     
     planets = [
         PlanetPositionData(

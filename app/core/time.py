@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 import swisseph as swe
 
-from .errors import InvalidTimeError
+from app.core.errors import InvalidTimeError
 
 
 class Time:

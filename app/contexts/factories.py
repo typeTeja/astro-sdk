@@ -1,10 +1,10 @@
-from .calculation import CalculationContext
-from .coordinate import CoordinateContext, CoordinateSystem
-from .feature import FeatureContext, FeatureMaturity
-from .house import HouseContext
-from .observer import ObserverContext
-from .zodiac import ZodiacContext, ZodiacType
-from ..core.constants import HouseSystem, SiderealMode
+from app.contexts.calculation import CalculationContext
+from app.contexts.coordinate import CoordinateContext, CoordinateSystem
+from app.contexts.feature import FeatureContext, FeatureMaturity
+from app.contexts.house import HouseContext
+from app.contexts.observer import ObserverContext
+from app.contexts.zodiac import ZodiacContext, ZodiacType
+from app.core.constants import HouseSystem, SiderealMode
 
 
 def build_western_chart_context(

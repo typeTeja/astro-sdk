@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ...core.constants import Planet
+from app.core.constants import Planet
 
 
 @dataclass(frozen=True)

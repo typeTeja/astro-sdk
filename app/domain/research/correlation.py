@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 
-from ..common.metadata import DomainMetadata
+from app.domain.common.metadata import DomainMetadata
 
 
 @dataclass(frozen=True)

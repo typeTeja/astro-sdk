@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..contexts.feature import FeatureMaturity
+from app.contexts.feature import FeatureMaturity
 
 
 @dataclass(frozen=True)

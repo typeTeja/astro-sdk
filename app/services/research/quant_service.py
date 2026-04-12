@@ -1,8 +1,8 @@
 from typing import Any
-from ...contexts import CalculationContext
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...domain.common.metadata import DomainMetadata
+from app.contexts import CalculationContext
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.domain.common.metadata import DomainMetadata
 
 
 class ResearchQuantService:
@@ -17,9 +17,9 @@ class ResearchQuantService:
         """
         Produce a time-series of Astro Intensity scores in 2.0.
         """
-        from ...services.western.aspect_service import WesternAspectService
-        from ...services.western.chart_service import WesternChartService
-        from ...domain.research.signals import AidenIntensityRecord
+        from app.services.western.aspect_service import WesternAspectService
+        from app.services.western.chart_service import WesternChartService
+        from app.domain.research.signals import AidenIntensityRecord
         
         aspect_service = WesternAspectService(self.context)
         chart_service = WesternChartService(self.context, ephemeris=self._eph)
@@ -64,8 +64,8 @@ class ResearchQuantService:
         """
         Finds 'Stelliums' or dense clusters in 2.0.
         """
-        from ...services.western.chart_service import WesternChartService
-        from ...domain.research.signals import ClusterIndexRecord, StellarCluster
+        from app.services.western.chart_service import WesternChartService
+        from app.domain.research.signals import ClusterIndexRecord, StellarCluster
         
         chart_service = WesternChartService(self.context, ephemeris=self._eph)
         results = []

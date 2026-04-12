@@ -1,11 +1,11 @@
 from datetime import datetime, time as dt_time
-from ...contexts import CalculationContext
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
-from ...core.ephemeris_context import EphemerisContext
-from ...core.time import Time
-from ...domain.vedic.panchanga import PanchangaData
-from ...domain.common.metadata import DomainMetadata
+from app.contexts import CalculationContext
+from app.core.constants import Planet, SiderealMode
+from app.core.ephemeris import Ephemeris
+from app.core.ephemeris_context import EphemerisContext
+from app.core.time import Time
+from app.domain.vedic.panchanga import PanchangaData
+from app.domain.common.metadata import DomainMetadata
 
 
 class VedicPanchangaService:

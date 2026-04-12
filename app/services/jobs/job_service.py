@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any, Callable
 
 from sqlmodel import Session, select
-from ...models.jobs import Job, JobStatus
+from app.models.jobs import Job, JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class JobService:
     def _run_task_wrapper(self, job_id: int, task_func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Internal wrapper to handle job state updates and error handling."""
         # Use a fresh session for the background thread to avoid thread-safety issues
-        from ...core.database import engine
+        from app.core.database import engine
         
         try:
             with Session(engine) as session:

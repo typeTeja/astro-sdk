@@ -1,7 +1,7 @@
 from typing import Any
 
-from ..core.constants import DEFAULT_EPHE_FLAG, DEFAULT_SIDEREAL
-from ..core.ephemeris import Ephemeris
+from app.core.constants import DEFAULT_EPHE_FLAG, DEFAULT_SIDEREAL
+from app.core.ephemeris import Ephemeris
 
 
 def get_engine_metadata() -> dict[str, Any]:

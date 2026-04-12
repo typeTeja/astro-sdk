@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from ..core.constants import SiderealMode
+from app.core.constants import SiderealMode
 
 
 class ZodiacType(StrEnum):

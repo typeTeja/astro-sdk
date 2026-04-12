@@ -1,11 +1,11 @@
 from datetime import timedelta
 from typing import Any
-from ...contexts import CalculationContext
-from ...core.constants import Planet
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...domain.financial import TimeWindow
-from ...domain.common.metadata import DomainMetadata
+from app.contexts import CalculationContext
+from app.core.constants import Planet
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.domain.research.financial import TimeWindow
+from app.domain.common.metadata import DomainMetadata
 
 
 class ResearchFinancialService:
@@ -25,8 +25,8 @@ class ResearchFinancialService:
         """
         Calculates distinct bounded periods like retrogrades and shadow phases.
         """
-        from ..mundane.station_service import StationService
-        station_service = StationService(self.context, ephemeris=self._eph)
+        from app.services.mundane.station_service import MundaneStationService
+        station_service = MundaneStationService(self.context, ephemeris=self._eph)
         
         windows: list[TimeWindow] = []
 

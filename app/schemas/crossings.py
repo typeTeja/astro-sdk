@@ -1,4 +1,4 @@
-"""Schemas for the /api/v1/crossings endpoints."""
+"""Schemas for the /api/v2/crossings endpoints."""
 from datetime import datetime
 
 from pydantic import BaseModel, Field

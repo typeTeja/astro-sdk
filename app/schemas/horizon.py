@@ -1,4 +1,4 @@
-"""Schemas for the /api/v1/horizon endpoints."""
+"""Schemas for the /api/v2/horizon endpoints."""
 from datetime import datetime
 
 from pydantic import BaseModel, Field

@@ -1,42 +1,88 @@
-from types import SimpleNamespace
-
-from ...contexts import CalculationContext
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...domain.planet import PlanetPosition
-from ...domain.transit import TransitAspect
-from ...services.transit_service import TransitService
+from app.contexts import CalculationContext
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.core.constants import ALLOWED_PLANETS, Planet
+from app.domain.astronomy.planet import PlanetSnapshot
+from app.domain.western.transit import TransitAspect
+from app.domain.common.metadata import DomainMetadata
 
 
 class WesternTransitService:
-    """Phase 0 adapter for transit-to-natal scanning via the 2.0 context model."""
+    """Native 2.0 service for transit-to-natal scanning."""
 
     def __init__(self, context: CalculationContext, ephemeris: Ephemeris | None = None) -> None:
         self.context = context
         self._ephemeris = ephemeris or Ephemeris()
-        self._transit_service = TransitService(self._ephemeris)
 
     def scan_transits(
         self,
-        natal_positions: list[PlanetPosition],
+        natal_positions: list[PlanetSnapshot],
         transit_time: Time,
         aspect_types: list[str] | None = None,
         global_orb: float | None = None,
     ) -> list[TransitAspect]:
-        zodiac = self.context.zodiac
-        coordinate = self.context.coordinate
+        """
+        Calculates aspects between transiting planets and fixed natal positions.
+        """
+        results = []
+        
+        # Calculate current transiting positions
+        transit_planets = []
+        for p_enum in ALLOWED_PLANETS:
+            pos = self._ephemeris.calculate_planet(
+                transit_time.julian_day, 
+                p_enum, 
+                sidereal=self.context.zodiac.is_sidereal,
+                heliocentric=self.context.zodiac.heliocentric
+            )
+            transit_planets.append(
+                PlanetSnapshot(
+                    planet=p_enum,
+                    longitude=pos["longitude"],
+                    latitude=pos["latitude"],
+                    distance=pos["distance"],
+                    metadata=DomainMetadata(capability="astronomy.planet", maturity="PROD", fingerprint="transit-scan")
+                )
+            )
 
-        natal_inputs = [
-            SimpleNamespace(longitude=position.longitude, planet=position.planet.name)
-            for position in natal_positions
-        ]
+        # Aspect definitions
+        target_aspects = aspect_types or ["Conjunction", "Opposition", "Trine", "Square", "Sextile"]
+        max_orb = global_orb if global_orb is not None else 8.0
+        
+        ASPECT_DEGREES = {
+            "Conjunction": 0,
+            "Opposition": 180,
+            "Trine": 120,
+            "Square": 90,
+            "Sextile": 60,
+        }
 
-        return self._transit_service.calculate_transit_aspects(
-            natal_inputs,
-            transit_time,
-            sidereal_mode=zodiac.sidereal_mode,
-            aspect_types=aspect_types,
-            global_orb=global_orb,
-            heliocentric=coordinate.is_heliocentric,
-            is_sidereal=zodiac.is_sidereal,
-        )
+        for tp in transit_planets:
+            for np in natal_positions:
+                for aspect_name, target_angle in ASPECT_DEGREES.items():
+                    if aspect_name not in target_aspects:
+                        continue
+                        
+                    diff = abs(tp.longitude - np.longitude) % 360
+                    if diff > 180:
+                        diff = 360 - diff
+                    
+                    orb = abs(diff - target_angle)
+                    
+                    if orb <= max_orb:
+                        results.append(
+                            TransitAspect(
+                                transit_planet=tp.planet,
+                                natal_planet=np.planet.name,
+                                aspect_type=aspect_name,
+                                angle=diff,
+                                orb=orb,
+                                is_applying=True,
+                                metadata=DomainMetadata(
+                                    capability="western.transit",
+                                    maturity=self.context.feature.maturity.value,
+                                    fingerprint=self.context.fingerprint
+                                )
+                            )
+                        )
+        return results

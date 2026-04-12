@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Any
-from ...contexts import CalculationContext
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...domain.common.metadata import DomainMetadata
-from ...domain.research.correlation import CycleCorrelation
-from ..mundane.station_service import StationService
+from app.contexts import CalculationContext
+from app.core.constants import Planet, SiderealMode
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.domain.common.metadata import DomainMetadata
+from app.domain.research.correlation import CycleCorrelation
+from app.services.mundane.station_service import StationService
 
 
 class CorrelationService:

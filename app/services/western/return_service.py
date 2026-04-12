@@ -1,17 +1,17 @@
-from ...contexts import CalculationContext
-from ...core.constants import Planet
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...services.crossing_service import CrossingService
+from app.contexts import CalculationContext
+from app.core.constants import Planet
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.services.astronomy.crossing_service import AstronomyCrossingService
 
 
 class WesternReturnService:
-    """Phase 1 adapter for planetary returns via the 2.0 context model."""
+    """AstroSDK 2.0 service for planetary returns."""
 
     def __init__(self, context: CalculationContext, ephemeris: Ephemeris | None = None) -> None:
         self.context = context
         self._ephemeris = ephemeris or Ephemeris()
-        self._crossing_service = CrossingService(self._ephemeris)
+        self._crossing_service = AstronomyCrossingService(self.context, self._ephemeris)
 
     def find_planetary_return(
         self,
@@ -20,18 +20,12 @@ class WesternReturnService:
         start_time: Time,
         max_days: float = 400.0,
     ) -> Time:
-        zodiac = self.context.zodiac
-        coordinate = self.context.coordinate
-
-        sidereal_mode = zodiac.sidereal_mode
-        if not zodiac.is_sidereal:
-            sidereal_mode = None
-
-        return self._crossing_service.find_planetary_return(
-            planet,
-            target_longitude,
-            start_time,
-            sidereal_mode=sidereal_mode,
-            heliocentric=coordinate.is_heliocentric,
-            max_search_years=max_days / 365.25,
+        """
+        Finds the exact time when a planet returns to a target longitude.
+        """
+        return self._crossing_service.find_longitude_crossing(
+            planet=planet,
+            target_longitude=target_longitude,
+            start_time=start_time,
+            max_days=max_days
         )

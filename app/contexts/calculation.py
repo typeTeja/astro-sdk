@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 
-from .coordinate import CoordinateContext
-from .feature import FeatureContext
-from .house import HouseContext
-from .observer import ObserverContext
-from .time import TimeContext
-from .zodiac import ZodiacContext
+from app.contexts.coordinate import CoordinateContext
+from app.contexts.feature import FeatureContext
+from app.contexts.house import HouseContext
+from app.contexts.observer import ObserverContext
+from app.contexts.time import TimeContext
+from app.contexts.zodiac import ZodiacContext
 
 
 class CalculationContext(BaseModel):
@@ -28,5 +28,5 @@ class CalculationContext(BaseModel):
     @property
     def fingerprint(self) -> str:
         """Calculate the deterministic fingerprint for this context."""
-        from ..core.fingerprint import calculation_fingerprint
+        from app.core.fingerprint import calculation_fingerprint
         return calculation_fingerprint(self.fingerprint_payload())

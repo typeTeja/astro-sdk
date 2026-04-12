@@ -1,10 +1,10 @@
-from ...contexts import CalculationContext
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
-from ...core.ephemeris_context import EphemerisContext
-from ...core.time import Time
-from ...domain.common.metadata import DomainMetadata
-from ...domain.mundane.event import EventType, ExactAspectEvent
+from app.contexts import CalculationContext
+from app.core.constants import Planet, SiderealMode
+from app.core.ephemeris import Ephemeris
+from app.core.ephemeris_context import EphemerisContext
+from app.core.time import Time
+from app.domain.common.metadata import DomainMetadata
+from app.domain.mundane.event import EventType, ExactAspectEvent
 
 
 class ExactAspectService:

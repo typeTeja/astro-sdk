@@ -6,7 +6,7 @@ from typing import Any
 import swisseph as swe
 from dotenv import find_dotenv, load_dotenv
 
-from .constants import (
+from app.core.constants import (
     ALLOWED_PLANETS,
     DEFAULT_EPHE_FLAG,
     MAX_SEARCH_DAYS,
@@ -14,7 +14,7 @@ from .constants import (
     Planet,
     SiderealMode,
 )
-from .errors import (
+from app.core.errors import (
     ConfigurationError,
     EphemerisError,
     SearchRangeTooLargeError,

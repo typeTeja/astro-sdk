@@ -1,10 +1,10 @@
 from datetime import timedelta
-from ...contexts import CalculationContext
-from ...core.constants import Planet
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...domain.astronomy.lunar import LunarPhaseRecord
-from ...domain.common.metadata import DomainMetadata
+from app.contexts import CalculationContext
+from app.core.constants import Planet
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.domain.astronomy.lunar import LunarPhaseRecord
+from app.domain.common.metadata import DomainMetadata
 
 
 class AstronomyLunarService:

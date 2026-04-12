@@ -1,4 +1,4 @@
-"""Schemas for the /api/v1/nodes endpoints."""
+"""Schemas for the /api/v2/nodes endpoints."""
 from pydantic import BaseModel, Field
 
 from .base import BaseAstroResponse

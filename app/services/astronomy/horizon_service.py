@@ -1,9 +1,14 @@
-from ...contexts import CalculationContext
+from app.contexts import CalculationContext
+from app.core.constants import Planet
+from app.core.ephemeris import Ephemeris
+from app.core.ephemeris_context import EphemerisContext
+from app.core.time import Time
 
 
 class AstronomyHorizonService:
-    def __init__(self, context: CalculationContext) -> None:
+    def __init__(self, context: CalculationContext, ephemeris: Ephemeris | None = None) -> None:
         self.context = context
+        self._eph = ephemeris or Ephemeris()
 
     def get_twilight(
         self,

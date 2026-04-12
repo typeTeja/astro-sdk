@@ -1,4 +1,4 @@
-from ...core.constants import Planet
+from app.core.constants import Planet
 
 # Ashtakavarga points relative to Natal positions.
 # Format: planet_whose_ashtakavarga_is_calculated: {

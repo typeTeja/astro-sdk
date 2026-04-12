@@ -1,49 +1,26 @@
-## Description
-<!-- Provide a clear and concise description of your changes -->
+# Pull Request Template (AstroSDK 2.0)
 
-## Type of Change
-<!-- Mark the relevant option with an 'x' -->
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Code refactoring
-- [ ] Performance improvement
-- [ ] Test coverage improvement
+## Description
+A summary of the change and which namespaced module it affects.
+
+- [ ] New 2.0 Feature
+- [ ] Bug Fix (2.0 baseline)
+- [ ] Refactor / Hardening
+- [ ] Breaking Change (API v2)
+
+## How It Fits 2.0
+Detailed explanation of why this change aligns with the namespaced, context-driven architecture.
+
+## Checklist (Pure 2.0 Standard)
+- [ ] My code follows the `SKILL.md` engineering guidelines.
+- [ ] I have updated the `CalculationContext` if required.
+- [ ] I have added at least one regression test for every new calculation.
+- [ ] I have run `mypy --strict` and it passed.
+- [ ] I have run `pytest tests/` and it passed.
+- [ ] I have updated the documentation (`README.md`, `CHANGELOG.md`).
 
 ## Related Issues
-<!-- Link to related issues using #issue_number -->
-Fixes #
-Related to #
+Closes #...
 
-## Changes Made
-<!-- List the specific changes you made -->
-- 
-- 
-- 
-
-## Testing
-<!-- Describe the tests you ran to verify your changes -->
-- [ ] All existing tests pass (`pytest tests/ -v`)
-- [ ] Added new tests for new functionality
-- [ ] Type checking passes (`mypy src/app --strict`)
-- [ ] Linting passes (`ruff check src/app`)
-- [ ] Tested on multiple platforms (if applicable)
-
-## Checklist
-<!-- Mark completed items with an 'x' -->
-- [ ] My code follows the project's coding standards
-- [ ] I have added type hints to all new functions
-- [ ] I have added docstrings to all new public methods
-- [ ] I have updated the documentation (if applicable)
-- [ ] I have added tests that prove my fix/feature works
-- [ ] All tests pass locally
-- [ ] My changes maintain determinism (same input → same output)
-- [ ] My changes do not introduce side effects or I/O in service layer
-- [ ] I have updated CHANGELOG.md (if applicable)
-
-## Screenshots/Output
-<!-- If applicable, add screenshots or console output to demonstrate the changes -->
-
-## Additional Notes
-<!-- Add any additional notes or context about the PR here -->
+## Verification Screenshots / Recordings
+(Optional for UI/CLI changes)

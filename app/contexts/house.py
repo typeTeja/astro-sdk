@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from ..core.constants import HouseSystem
+from app.core.constants import HouseSystem
 
 
 class HouseContext(BaseModel):

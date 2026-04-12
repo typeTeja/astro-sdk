@@ -1,10 +1,10 @@
-from ...contexts import CalculationContext
-from ...core.constants import Planet, SiderealMode
-from ...core.ephemeris import Ephemeris
-from ...core.ephemeris_context import EphemerisContext
-from ...core.time import Time
-from ...domain.planet import PlanetPosition
-from ...domain.common.metadata import DomainMetadata
+from app.contexts import CalculationContext
+from app.core.constants import Planet, SiderealMode
+from app.core.ephemeris import Ephemeris
+from app.core.ephemeris_context import EphemerisContext
+from app.core.time import Time
+from app.domain.astronomy.planet import PlanetSnapshot
+from app.domain.common.metadata import DomainMetadata
 
 
 class AstronomyNodeService:
@@ -19,7 +19,7 @@ class AstronomyNodeService:
         self, 
         time: Time, 
         true_node: bool = True
-    ) -> tuple[PlanetPosition, PlanetPosition]:
+    ) -> tuple[PlanetSnapshot, PlanetSnapshot]:
         """
         Calculate North and South lunar nodes.
         """
@@ -30,27 +30,33 @@ class AstronomyNodeService:
         with EphemerisContext(sid_mode=sid_mode):
             data = self._eph.calculate_planet(time.julian_day, planet, sidereal=is_sidereal)
             
-            north = PlanetPosition(
+            meta = DomainMetadata(
+                capability="astronomy.nodes",
+                maturity=self.context.feature.maturity.value,
+                fingerprint=self.context.fingerprint
+            )
+
+            north = PlanetSnapshot(
                 planet=planet,
                 longitude=data["longitude"],
                 latitude=data["latitude"],
                 distance=data["distance"],
-                speed_long=data["speed_long"]
+                metadata=meta
             )
             
             # South node is exactly opposite
             south_lon = (data["longitude"] + 180.0) % 360.0
-            south = PlanetPosition(
+            south = PlanetSnapshot(
                 planet=Planet.MEAN_NODE_OPP, # Representation
                 longitude=south_lon,
                 latitude=-data["latitude"],
                 distance=data["distance"],
-                speed_long=data["speed_long"]
+                metadata=meta
             )
             
             return north, south
 
-    def get_lilith(self, time: Time, true_lilith: bool = False) -> PlanetPosition:
+    def get_lilith(self, time: Time, true_lilith: bool = False) -> PlanetSnapshot:
         """
         Calculate Black Moon Lilith (Lunar Apogee).
         """
@@ -60,12 +66,16 @@ class AstronomyNodeService:
 
         with EphemerisContext(sid_mode=sid_mode):
             data = self._eph.calculate_planet(time.julian_day, planet, sidereal=is_sidereal)
-            return PlanetPosition(
+            return PlanetSnapshot(
                 planet=planet,
                 longitude=data["longitude"],
                 latitude=data["latitude"],
                 distance=data["distance"],
-                speed_long=data["speed_long"],
+                metadata=DomainMetadata(
+                    capability="astronomy.lilith",
+                    maturity=self.context.feature.maturity.value,
+                    fingerprint=self.context.fingerprint
+                )
             )
 
     def get_planetary_nodes(self, time: Time, planet: Planet) -> dict[str, float]:

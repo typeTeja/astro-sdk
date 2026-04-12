@@ -1,4 +1,4 @@
-"""Schemas for the /api/v1/heliacal endpoints."""
+"""Schemas for the /api/v2/heliacal endpoints."""
 from datetime import datetime
 
 from pydantic import BaseModel, Field

@@ -1,4 +1,4 @@
-from ...contexts import CalculationContext
+from app.contexts import CalculationContext
 
 
 class AstronomyEclipseService:

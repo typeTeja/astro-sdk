@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from ...core.constants import Planet
-from ..common.metadata import DomainMetadata
+from app.core.constants import Planet
+from app.domain.common.metadata import DomainMetadata
 
 
 @dataclass(frozen=True)

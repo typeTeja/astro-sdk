@@ -1,6 +1,6 @@
-from .constants import HouseSystem, Planet, SiderealMode, ZodiacSign
-from .errors import AstroError, ConfigurationError, EphemerisError, InvalidTimeError
-from .time import Time
+from app.core.constants import HouseSystem, Planet, SiderealMode, ZodiacSign
+from app.core.errors import AstroError, ConfigurationError, EphemerisError, InvalidTimeError
+from app.core.time import Time
 
 __all__ = [
     "AstroError",

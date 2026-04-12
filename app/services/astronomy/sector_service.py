@@ -1,8 +1,8 @@
-from ...contexts import CalculationContext
-from ...core.constants import HouseSystem, Planet
-from ...core.ephemeris import Ephemeris
-from ...core.time import Time
-from ...domain.common.metadata import DomainMetadata
+from app.contexts import CalculationContext
+from app.core.constants import HouseSystem, Planet
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.domain.common.metadata import DomainMetadata
 
 
 class AstronomySectorService:
@@ -23,7 +23,7 @@ class AstronomySectorService:
         """
         Calculate the sector position for all major planets using the diurnal cycle.
         """
-        from ...core.ephemeris_context import EphemerisContext
+        from app.core.ephemeris_context import EphemerisContext
         
         # Geocentric scanning
         with EphemerisContext(topo=None):

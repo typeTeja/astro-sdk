@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
-
-from ..common.metadata import DomainMetadata
+from app.domain.common.metadata import DomainMetadata
+from app.domain.astronomy.planet import PlanetSnapshot
 
 
 @dataclass(frozen=True)
 class ProgressedChart:
-    progression_type: str
-    progression_date: datetime
+    """AstroSDK 2.0 progressed state."""
+    natal_time: datetime
+    progressed_time: datetime
+    target_time: datetime
+    planets: tuple[PlanetSnapshot, ...]
     metadata: DomainMetadata

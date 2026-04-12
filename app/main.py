@@ -4,32 +4,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from .api.v1 import (
-    alerts,
-    aspects,
-    astro,
-    charts,
-    crossings,
-    cycles,
-    events,
-    financial,
-    heliacal,
-    horizon,
-    lunar,
-    nodes,
-    parans,
-    progressions,
-    projections,
-    quant,
-    research,
-    signals,
-    stars,
-    synodic,
-    transits,
-    vedic,
+from app.api.v2 import (
+    aspects, astro, charts, crossings, cycles, events, financial,
+    heliacal, horizon, lunar, nodes, parans, progressions,
+    projections, quant, signals, stars, synodic, transits
 )
-from .core.database import create_db_and_tables
-from .core.errors import (
+from app.core.database import create_db_and_tables
+from app.core.errors import (
     AstroError,
     ConfigurationError,
     EphemerisError,
@@ -37,6 +18,11 @@ from .core.errors import (
     SearchRangeTooLargeError,
     UnsupportedPlanetError,
 )
+from app.api.v2.astronomy.positions import router as astronomy_v2_router
+from app.api.v2.western.charts import router as western_v2_router
+from app.api.v2.vedic.panchang import router as vedic_v2_router
+from app.api.v2.research.jobs import router as research_v2_router
+from app.api.v2.alerts.rules import router as alert_v2_router
 
 
 @asynccontextmanager
@@ -52,9 +38,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title="AstroSDK Backend Platform",
+    title="AstroSDK 2.0 Platform",
     description="Professional-grade astronomical research and alert engine.",
-    version="1.5.2",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -116,37 +102,37 @@ async def generic_astro_handler(request: Request, exc: AstroError) -> JSONRespon
 # Routers
 # ---------------------------------------------------------------------------
 
-# Core data routers
-app.include_router(astro.router, prefix="/api/v1/astro", tags=["Astro"])
-app.include_router(charts.router, prefix="/api/v1/charts", tags=["Charts"])
-app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
-app.include_router(lunar.router, prefix="/api/v1/lunar", tags=["Lunar"])
-app.include_router(aspects.router, prefix="/api/v1/aspects", tags=["Aspects"])
-app.include_router(progressions.router, prefix="/api/v1/progressions", tags=["Progressions"])
-app.include_router(quant.router, prefix="/api/v1/quant", tags=["Quantitative"])
-app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
-app.include_router(vedic.router, prefix="/api/v1/vedic", tags=["Vedic"])
-app.include_router(transits.router, prefix="/api/v1/transits", tags=["Transits"])
-
-# Newly added routers (Phase 3 & Phase 4)
-app.include_router(crossings.router, prefix="/api/v1/crossings", tags=["Crossings"])
-app.include_router(horizon.router, prefix="/api/v1/horizon", tags=["Horizon"])
-app.include_router(stars.router, prefix="/api/v1/stars", tags=["Fixed Stars"])
-app.include_router(nodes.router, prefix="/api/v1/nodes", tags=["Nodes & Apsides"])
-app.include_router(parans.router, prefix="/api/v1/parans", tags=["Parans"])
-app.include_router(heliacal.router, prefix="/api/v1/heliacal", tags=["Heliacal"])
-app.include_router(synodic.router, prefix="/api/v1/synodic", tags=["Synodic"])
-app.include_router(financial.router, prefix="/api/v1/financial", tags=["Financial Astrology"])
-app.include_router(signals.router, prefix="/api/v1/signals", tags=["Signals & Statistical"])
-app.include_router(research.router, prefix="/api/v1/research", tags=["Research & Export"])
-app.include_router(cycles.router, prefix="/api/v1/cycles", tags=["Cycles & Composite"])
-app.include_router(projections.router, prefix="/api/v1/projections", tags=["Mathematical Projections"])
-
 # ---------------------------------------------------------------------------
-# API V2 (Native 2.0 Engine)
+# API V2 Routers
 # ---------------------------------------------------------------------------
-from .api.v2 import router as v2_router
-app.include_router(v2_router, prefix="/api/v2", tags=["V2 API"])
+
+# Domain Specific Routers (Single Module)
+app.include_router(astro.router, prefix="/api/v2/astro", tags=["Astro"])
+app.include_router(charts.router, prefix="/api/v2/charts", tags=["Charts"])
+app.include_router(events.router, prefix="/api/v2/events", tags=["Events"])
+app.include_router(lunar.router, prefix="/api/v2/lunar", tags=["Lunar"])
+app.include_router(aspects.router, prefix="/api/v2/aspects", tags=["Aspects"])
+app.include_router(progressions.router, prefix="/api/v2/progressions", tags=["Progressions"])
+app.include_router(quant.router, prefix="/api/v2/quant", tags=["Quantitative"])
+app.include_router(transits.router, prefix="/api/v2/transits", tags=["Transits"])
+app.include_router(crossings.router, prefix="/api/v2/crossings", tags=["Crossings"])
+app.include_router(horizon.router, prefix="/api/v2/horizon", tags=["Horizon"])
+app.include_router(stars.router, prefix="/api/v2/stars", tags=["Fixed Stars"])
+app.include_router(nodes.router, prefix="/api/v2/nodes", tags=["Nodes & Apsides"])
+app.include_router(parans.router, prefix="/api/v2/parans", tags=["Parans"])
+app.include_router(heliacal.router, prefix="/api/v2/heliacal", tags=["Heliacal"])
+app.include_router(synodic.router, prefix="/api/v2/synodic", tags=["Synodic"])
+app.include_router(financial.router, prefix="/api/v2/financial", tags=["Financial Astrology"])
+app.include_router(signals.router, prefix="/api/v2/signals", tags=["Signals & Statistical"])
+app.include_router(cycles.router, prefix="/api/v2/cycles", tags=["Cycles & Composite"])
+app.include_router(projections.router, prefix="/api/v2/projections", tags=["Mathematical Projections"])
+
+# Namespaced Package Routers
+app.include_router(astronomy_v2_router, prefix="/api/v2/astronomy", tags=["V2 Astronomy"])
+app.include_router(western_v2_router, prefix="/api/v2/western", tags=["V2 Western"])
+app.include_router(vedic_v2_router, prefix="/api/v2/vedic", tags=["V2 Vedic"])
+app.include_router(research_v2_router, prefix="/api/v2/research", tags=["V2 Research"])
+app.include_router(alert_v2_router, prefix="/api/v2/alerts", tags=["V2 Alerts"])
 
 
 @app.get("/", tags=["Health"])

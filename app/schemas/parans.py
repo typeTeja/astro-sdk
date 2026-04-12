@@ -1,4 +1,4 @@
-"""Schemas for the /api/v1/parans endpoints."""
+"""Schemas for the /api/v2/parans endpoints."""
 from datetime import datetime
 
 from pydantic import BaseModel, Field

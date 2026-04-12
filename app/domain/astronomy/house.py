@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ...core.constants import HouseSystem, ZodiacSign
+from app.core.constants import HouseSystem, ZodiacSign
 
 
 @dataclass(frozen=True)

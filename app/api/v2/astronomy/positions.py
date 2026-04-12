@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from ....contexts.calculation import CalculationContext
-from ....core.constants import Planet, validate_enum_by_name
-from ....core.ephemeris import Ephemeris
-from ....core.time import Time
-from ..common import get_calculation_context
+from app.contexts.calculation import CalculationContext
+from app.core.constants import Planet, validate_enum_by_name
+from app.core.ephemeris import Ephemeris
+from app.core.time import Time
+from app.api.v2.common import get_calculation_context
 
 router = APIRouter()
 ephemeris = Ephemeris()

@@ -2,9 +2,9 @@ from typing import Annotated, Any
 
 from fastapi import Header, Query
 from pydantic import AfterValidator
-from ...contexts.calculation import CalculationContext
-from ...contexts.factories import create_default_context
-from ...core.constants import HouseSystem, SiderealMode, validate_enum_by_name
+from app.contexts.calculation import CalculationContext
+from app.contexts.factories import create_default_context
+from app.core.constants import HouseSystem, SiderealMode, validate_enum_by_name
 
 
 def get_calculation_context(
@@ -35,16 +35,16 @@ def get_calculation_context(
         ctx.zodiac.sidereal_mode = validate_enum_by_name(SiderealMode, final_sid_mode_raw)
         
     if ctx.observer is None:
-        from ...contexts.observer import ObserverContext
+        from app.contexts.observer import ObserverContext
         ctx.observer = ObserverContext(latitude=0.0, longitude=0.0)
         
     final_is_sidereal = is_sidereal if is_sidereal is not None else q_is_sidereal
     if final_is_sidereal is not None:
-        from ...contexts.zodiac import ZodiacType
+        from app.contexts.zodiac import ZodiacType
         ctx.zodiac.zodiac = ZodiacType.SIDEREAL if final_is_sidereal else ZodiacType.TROPICAL
         
     if heliocentric is not None:
-        from ...contexts.coordinate import CoordinateSystem
+        from app.contexts.coordinate import CoordinateSystem
         ctx.coordinate.system = CoordinateSystem.HELIOCENTRIC if heliocentric else CoordinateSystem.GEOCENTRIC
         
     return ctx
