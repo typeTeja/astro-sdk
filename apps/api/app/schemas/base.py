@@ -22,24 +22,6 @@ class GeographicLocation(BaseModel):
     altitude: float = Field(0.0, description="Altitude in meters above sea level")
 
 
-class AstroSettings(BaseModel):
-    """
-    Control settings for the astronomical engine.
-    Strictly follows User Rule 8 for defaults.
-    """
-
-    sidereal_mode: SiderealMode | None = Field(
-        default=SiderealMode.LAHIRI,
-        description="Ayanamsa system (only used if is_sidereal is True)",
-    )
-    house_system: HouseSystem = Field(
-        default=HouseSystem.WHOLE_SIGN, description="House system for cusp calculation"
-    )
-    is_sidereal: bool = Field(
-        default=True, description="Whether to use sidereal (True) or tropical (False) zodiac"
-    )
-
-
 class AstroTimeInput(BaseModel):
     """
     Normalized time input for all endpoints.

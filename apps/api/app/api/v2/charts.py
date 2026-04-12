@@ -16,8 +16,10 @@ from app.schemas.charts import (
     NatalChartRequest,
     NatalChartResponse,
     PanchangaDataSchema,
+    PanchangaRequest,
     PanchangaResponse,
     TransitChartData,
+    TransitRequest,
     TransitChartResponse,
 )
 from app.services.vedic.panchanga_service import VedicPanchangaService
@@ -37,8 +39,7 @@ def create_natal_chart(
     """
     t = Time(request.time.time)
 
-    # 2.0 High-Level Priority: Headers > Body Settings
-    # If the context didn't get values from headers/query, we fallback to body
+    # 1. Coordinate Priority: Headers/Query > Body Logic
     if context.observer is None or (context.observer.latitude == 0.0 and context.observer.longitude == 0.0):
         from app.contexts.observer import ObserverContext
         context.observer = ObserverContext(
@@ -47,14 +48,12 @@ def create_natal_chart(
             altitude=request.location.altitude or 0.0
         )
 
-    # 2.0 Mapping: Override Context with ChartSettings payload
+    # 2. Settings Merge & Deterministic Resolution
     if request.settings:
-        if request.settings.house_system:
-            context.house.system = request.settings.house_system
-        if request.settings.is_sidereal is not None:
-            context.zodiac.zodiac = ZodiacType.SIDEREAL if request.settings.is_sidereal else ZodiacType.TROPICAL
-        if request.settings.sidereal_mode:
-            context.zodiac.sidereal_mode = request.settings.sidereal_mode
+        context.apply_settings(request.settings)
+    
+    from app.core.settings_resolver import resolve_calculation_context
+    resolve_calculation_context(context)
 
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     chart = chart_service.create_chart(
@@ -111,15 +110,9 @@ def create_natal_chart(
     )
 
 
-@router.get("/transits", response_model=TransitChartResponse, summary="Get current transit chart")
-def get_transit_chart(
-    time: datetime = Query(...),
-    context: CalculationContext = Depends(get_calculation_context),
-) -> TransitChartResponse:
-    """
-    Calculate planetary positions for a given moment and location (Transit Chart).
-    """
-    t = Time(time)
+    from app.core.settings_resolver import resolve_calculation_context
+    resolve_calculation_context(context)
+
     chart_service = WesternChartService(context, ephemeris=ephemeris)
     chart = chart_service.create_chart(
         t,
@@ -162,6 +155,28 @@ def get_transit_chart(
     )
 
 
+@router.post("/transits", response_model=TransitChartResponse, summary="Get transit chart (POST)")
+def create_transit_chart(
+    request: TransitRequest,
+    context: CalculationContext = Depends(get_calculation_context),
+) -> TransitChartResponse:
+    """
+    Calculate planetary positions for a given moment and location (Transit Chart) with body settings.
+    """
+    if request.location:
+        from app.contexts.observer import ObserverContext
+        context.observer = ObserverContext(
+            latitude=request.location.latitude,
+            longitude=request.location.longitude,
+            altitude=request.location.altitude or 0.0
+        )
+    
+    if request.settings:
+        context.apply_settings(request.settings)
+        
+    return get_transit_chart(time=request.time.time, context=context)
+
+
 @router.get("/panchanga", response_model=PanchangaResponse, summary="Calculate Panchanga")
 def get_panchanga(
     time: datetime = Query(...),
@@ -172,12 +187,11 @@ def get_panchanga(
     """
     t = Time(time)
 
+    from app.core.settings_resolver import resolve_calculation_context
+    resolve_calculation_context(context)
+
     pan_service = VedicPanchangaService(context, ephemeris=ephemeris)
-    results = pan_service.calculate_panchanga(
-        t,
-        context.observer.latitude if context.observer else 0.0,
-        context.observer.longitude if context.observer else 0.0
-    )
+    results = pan_service.calculate_panchanga(t)
 
     data = PanchangaDataSchema(
         tithi=results.tithi,
@@ -197,3 +211,24 @@ def get_panchanga(
         ),
         data=data
     )
+
+
+@router.post("/panchanga", response_model=PanchangaResponse, summary="Calculate Panchanga (POST)")
+def create_panchanga(
+    request: PanchangaRequest,
+    context: CalculationContext = Depends(get_calculation_context),
+) -> PanchangaResponse:
+    """
+    Calculate Vedic Panchanga with explicit body settings.
+    """
+    from app.contexts.observer import ObserverContext
+    context.observer = ObserverContext(
+        latitude=request.location.latitude,
+        longitude=request.location.longitude,
+        altitude=request.location.altitude or 0.0
+    )
+    
+    if request.settings:
+        context.apply_settings(request.settings)
+        
+    return get_panchanga(time=request.time.time, context=context)

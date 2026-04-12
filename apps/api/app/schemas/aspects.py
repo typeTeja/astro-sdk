@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 
 from ..core.constants import Planet
-from .base import AstroSettings, AstroTimeInput, BaseAstroResponse, GeographicLocation
+from .settings import ChartSettings
 
 
 class AspectSchema(BaseModel):
@@ -24,7 +24,7 @@ class AspectRequest(BaseModel):
 
     time: AstroTimeInput
     location: GeographicLocation | None = None
-    settings: AstroSettings = Field(default_factory=AstroSettings)
+    settings: ChartSettings = Field(default_factory=ChartSettings)
 
     planets: list[Planet] | None = Field(
         None, description="Filter which planets to include in calculation"

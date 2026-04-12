@@ -22,10 +22,12 @@ def get_panchanga(
 ) -> PanchangaResponse:
     """
     Calculate the five elements of the Vedic calendar using the 2.0 platform.
-    Defaults to Sidereal (Lahiri) if not overridden in headers.
-    Requires topocentric coordinates via Header or Query params mapping.
     """
     t = Time(time)
+
+    # Deterministic resolution
+    from app.core.settings_resolver import resolve_calculation_context
+    resolve_calculation_context(context)
 
     # Delegate to the native 2.0 service
     service = VedicPanchangaService(context, ephemeris=ephemeris)
@@ -33,10 +35,11 @@ def get_panchanga(
 
     return PanchangaResponse(
         meta=get_meta(
-            is_sidereal=True,
+            is_sidereal=context.zodiac.is_sidereal,
             sidereal_mode=context.zodiac.sidereal_mode,
             capability="vedic.panchanga",
             feature_maturity="PRODUCTION"
         ),
         data=data
     )
+

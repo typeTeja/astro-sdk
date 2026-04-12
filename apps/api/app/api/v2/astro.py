@@ -7,12 +7,14 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.api.v2.meta import get_meta
-from app.schemas.base import AstroSettings, BaseAstroResponse
+from app.core.settings_resolver import resolve_settings
+from app.schemas.base import BaseAstroResponse
+from app.schemas.settings import ChartSettings
 
 router = APIRouter()
 
 
-class SettingsResponse(BaseAstroResponse[AstroSettings]):
+class SettingsResponse(BaseAstroResponse[ChartSettings]):
     pass
 
 
@@ -27,26 +29,27 @@ def get_ephemeris_status() -> dict[str, Any]:
 @router.get("/settings", response_model=SettingsResponse)
 def get_settings() -> SettingsResponse:
     """
-    Returns the default baseline AstroSettings dictating the global environment.
+    Returns the default baseline ChartSettings dictating the global environment.
     """
     # AstroSDK is primarily stateless, so we return standard active defaults.
-    settings = AstroSettings()
+    settings = ChartSettings()
     return SettingsResponse(meta=get_meta(), data=settings)
 
 
 class SettingsValidationData(BaseModel):
     valid: bool
-    normalized: AstroSettings
+    normalized: ChartSettings
 
 class SettingsValidationResponse(BaseAstroResponse[SettingsValidationData]):
     pass
 
 @router.post("/settings", response_model=SettingsValidationResponse)
-def validate_settings(settings: AstroSettings) -> SettingsValidationResponse:
+def validate_settings(settings: ChartSettings) -> SettingsValidationResponse:
     """
-    Accepts an AstroSettings payload.
-    Since backend is stateless, this serves strictly as payload validation
-    and normalization before downstream execution. Does not store to SQLite.
+    Accepts an ChartSettings payload.
+    Ensures that business rules are enforced (normalized) before execution.
     """
-    data = SettingsValidationData(valid=True, normalized=settings)
+    normalized = resolve_settings(settings)
+    data = SettingsValidationData(valid=True, normalized=normalized)
     return SettingsValidationResponse(meta=get_meta(), data=data)
+
